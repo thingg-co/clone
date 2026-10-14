@@ -37,7 +37,7 @@ class Settings:
     context_window: int | None = None    # None: probe the server, else fall back to 32768
     min_context: int = 0                 # warn at startup (and fail --doctor) when the server's window is smaller
     compact_threshold: float = 0.75      # compact when prompt tokens exceed this share of the window
-    reasoning_effort: str = "high"       # off | low | medium | high | max
+    reasoning_effort: str = "max"        # off | low | medium | high | max; max is the deepest each model has
     thinking: str = "auto"               # auto | native | prompted | off; auto picks by model name (see thinking.py)
     show_thinking: bool = False
     send_reasoning_back: bool = True     # keep the model's reasoning in the history it is sent back

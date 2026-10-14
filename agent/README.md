@@ -27,7 +27,7 @@ on, or a prefix listed in `allowed_commands`); everything else asks, with an
 they cannot ask about, so pass `-y` when piping.
 
 Thinking: `--effort` (or `/effort` in a session) takes `off`, `low`, `medium`,
-`high` or `max`; the default is `high`. What that does depends on the model.
+`high` or `max`; the default is `max`. What that does depends on the model.
 A model with a reasoning mode of its own (Qwen3.8, Laguna, Nemotron, gpt-oss)
 thinks natively and the server returns it as `reasoning_content`. Each family
 names its levels differently, so the agent translates: Qwen3.8 gets `xhigh`

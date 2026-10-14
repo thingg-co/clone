@@ -256,7 +256,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.9.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.10.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -364,7 +364,7 @@ that changes state, with an allowlist for obviously safe commands. The
 context window is read from the server, tool output limits scale with it, and
 the history is summarised when it fills. Sessions are saved and resumable.
 
-Thinking has five levels (`--effort off|low|medium|high|max`, default `high`).
+Thinking has five levels (`--effort off|low|medium|high|max`, default `max`).
 On a model that reasons natively the agent translates the level into whatever
 that family calls it (Qwen3.8 says `xhigh`, some models only switch thinking
 on or off) and keeps the reasoning in the history. On one that does not, the

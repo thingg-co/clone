@@ -47,6 +47,9 @@ args=(
     --metrics --slots
 )
 [ -n "${API_KEY:-}" ] && args+=(--api-key "$API_KEY")
+# The template's defaults for every request, such as the reasoning effort; a request can still
+# set its own. Most templates already default to their deepest reasoning; DeepSeek's does not.
+[ -n "${TEMPLATE_KWARGS:-}" ] && args+=(--chat-template-kwargs "$TEMPLATE_KWARGS")
 # EXTRA_ARGS (profile) and LLAMA_EXTRA (spark.env) are word-split on purpose
 # shellcheck disable=SC2206
 args+=(${EXTRA_ARGS:-} ${LLAMA_EXTRA:-})

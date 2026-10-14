@@ -45,7 +45,8 @@ note_for() {  # backend profile long: how it was served, for the results table
     else
         kv=$(field llama "$2" KV_TYPE)
         case "$kv" in f16|bf16) kv="16-bit cache" ;; q8_0) kv="8-bit cache" ;; *) kv="$kv cache" ;; esac
-        echo "llama.cpp, $kv"
+        effort=$(field llama "$2" TEMPLATE_KWARGS | sed -n 's/.*"reasoning_effort" *: *"\([a-z]*\)".*/\1/p')
+        echo "llama.cpp, $kv${effort:+, reasoning effort $effort}"
     fi
 }
 

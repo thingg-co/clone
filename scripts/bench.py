@@ -117,10 +117,11 @@ def tools_and_thinking(server: Server, model: str) -> dict:
 
 
 def ladder(window) -> list:
-    """Prompt sizes, in thousands of tokens: 100, 250, 500 and 1000 where they fit, then the top of the window."""
+    """Prompt sizes, in thousands of tokens: 100, 250, 500 and 1000 where they fit, then the top of the
+    window, short of it by the question and a whole 32,768-token answer (context-test.py's budget)."""
     if not window:
         return [100]
-    top = (window - 8000) // 1000
+    top = (window - 8000 - 32768) // 1000
     sizes = [s for s in (100, 250, 500, 1000) if s <= top]
     if not sizes or top > sizes[-1] * 1.1:
         sizes.append(top)

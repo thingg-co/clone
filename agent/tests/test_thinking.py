@@ -63,6 +63,8 @@ def test_mode_by_model_and_setting():
     assert thinking.mode(s, "gpt-oss-120b") == "native"
     assert thinking.mode(s, "qwen3-next-80b-thinking") == "native"
     assert thinking.mode(s, "deepseek-v4-flash") == "native" and thinking.mode(s, "deepseek-v4-flash-dspark") == "native"
+    assert all(thinking.mode(s, m) == "native" for m in ("mimo-v2.6-flash-reap", "dots3-note", "k2-horizon-mova", "seed-oss-36b"))
+    assert thinking.mode(s, "kimi-linear-48b") == "prompted"
     assert thinking.mode(Settings(thinking="prompted"), "gpt-oss-120b") == "prompted"
     assert thinking.mode(Settings(reasoning_effort="off"), "gpt-oss-120b") == "off"
 
@@ -87,10 +89,12 @@ def test_request_body_per_level():
     assert body("qwen3.8-flash-next", reasoning_effort="low") == {"reasoning_effort": "low"}
     assert body("glm-5.3-flash", reasoning_effort="medium") == {"reasoning_effort": "high"}
     assert body("nemotron-3-super") == {}                       # on or off only
-    assert body("deepseek-v4-flash") == {"reasoning_effort": "high"}
+    assert body("deepseek-v4-flash") == {"reasoning_effort": "max"}     # the default level is max
     assert body("deepseek-v4-flash", reasoning_effort="medium") == {}   # its template has no medium
     llama = Client(Settings(backend="llama.cpp"), model="deepseek-v4-flash")._extra_body()
-    assert llama == {"chat_template_kwargs": {"reasoning_effort": "high"}}
+    assert llama == {"chat_template_kwargs": {"reasoning_effort": "max"}}
+    assert body("qwen3.5-122b") == {} and body("mimo-v2.6-flash-reap") == {} and body("seed-oss-36b") == {}
+    assert body("k2-horizon-mova") == {"reasoning_effort": "high"}      # high is its deepest
     assert body("nemotron-3-super", reasoning_effort="off") == {"chat_template_kwargs": {"enable_thinking": False}}
     assert body("glm-4.5-air", reasoning_effort="off") == {"chat_template_kwargs": {"enable_thinking": False}}
 
@@ -119,9 +123,10 @@ def test_thinking_dropped_from_history_when_not_sent_back(tmp_path, ui):
 
 def test_set_effort_rebuilds_the_prompt_only_when_it_matters(tmp_path, ui):
     agent = make_agent(tmp_path, FakeClient([]), ui)  # model "fake": prompted
-    before = agent.messages[0]["content"]
-    assert agent.set_effort("max") is True and agent.messages[0]["content"] != before
+    before = agent.messages[0]["content"]                 # at the default, max
     assert agent.set_effort("max") is False
+    assert agent.set_effort("low") is True and agent.messages[0]["content"] != before
+    assert agent.set_effort("low") is False
     assert agent.set_effort("off") is True and "# Thinking" not in agent.messages[0]["content"]
 
 

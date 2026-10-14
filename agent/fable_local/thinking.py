@@ -14,7 +14,8 @@ from typing import Any
 from . import prompts
 
 LEVELS = ("off", "low", "medium", "high", "max")
-NATIVE_NAMES = re.compile(r"gpt-oss|thinking|reasoner|qwq|glm|-r1|deepseek-v(?:3\.[1-9]|[4-9])|nemotron|qwen3\.[5-9]|flash-next|laguna", re.I)
+NATIVE_NAMES = re.compile(r"gpt-oss|thinking|reasoner|qwq|glm|-r1|deepseek-v(?:3\.[1-9]|[4-9])|nemotron|qwen3\.[5-9]|flash-next|laguna|"
+                          r"mimo|dots3|k2-horizon|seed-oss", re.I)
 OPEN, CLOSE = "<think>", "</think>"
 
 # What each family of natively reasoning models takes as reasoning_effort, by our level.
@@ -24,7 +25,8 @@ EFFORTS: tuple[tuple[re.Pattern[str], dict[str, str] | None], ...] = (
     (re.compile(r"gpt-oss", re.I), {**STANDARD_EFFORT, "off": "low"}),  # cannot be switched off
     (re.compile(r"qwen3\.[89]|flash-next|qwen4", re.I), {"low": "low", "medium": "medium", "high": "xhigh", "max": "xhigh"}),
     (re.compile(r"glm-5", re.I), {"low": "low", "medium": "high", "high": "max", "max": "max"}),
-    (re.compile(r"nemotron|laguna", re.I), None),  # on or off only, through enable_thinking
+    (re.compile(r"nemotron|laguna|qwen3\.[5-7]|mimo|dots3", re.I), None),  # on or off only, through enable_thinking
+    (re.compile(r"seed-oss", re.I), None),         # a thinking budget instead, unlimited unless set
     # DeepSeek V4's template (the one in the GGUF builds) knows only high and max; anything
     # else leaves its effort instruction out.
     (re.compile(r"deepseek", re.I), {"high": "high", "max": "max"}),

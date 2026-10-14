@@ -86,9 +86,10 @@ def main() -> int:
     codes = [random.randint(100000, 999999) for _ in range(int(max(sizes) / 8) + 1)]  # more than any tokenizer needs
     per_record = TOKENS_PER_RECORD
     failed = False
+    reserve = 8000 + args.max_tokens  # the question, and a whole answer with its reasoning
     for size in sizes:
-        if window and size > window - 8000:
-            size = window - 8000  # leave room for the question, the answer and its reasoning
+        if window and size > window - reserve:
+            size = window - reserve
         n = int(size / per_record)
         if per_record == TOKENS_PER_RECORD:
             n = int(n * 0.96)  # tokenizers differ by a few percent; stay under until this one is measured
@@ -99,8 +100,8 @@ def main() -> int:
             asks = [min(137, n // 8), n // 2 + 11, n - min(205, n // 8)]  # start, middle and end, also for small tests
             records = "\n".join(f"Record {i}: the access code for locker {i} is {codes[i]}." for i in range(n))
             # Until 2026-10-14 every answer got 4,000 tokens, and a model that checked its work at
-            # length was cut off before the tool call. Near the top of the window there is no more
-            # room than that anyway.
+            # length was cut off before the tool call. The top of the ladder stops short of the
+            # window by the same amount, so it gets the whole budget too.
             room = window - int(n * per_record * 1.02) - 512 if window else args.max_tokens
             body = {
                 "model": model, "max_tokens": max(4000, min(args.max_tokens, room)), "temperature": 0, "tools": TOOLS,
