@@ -32,7 +32,7 @@ load_model() {
     local f="$ROOT/config/models/$MODEL_KEY.env"
     [ -f "$f" ] || die "no model profile at $f (known: $(ls "$ROOT/config/models" | sed 's/\.env$//' | tr '\n' ' '))"
     # reset fields a previous profile may have set
-    unset HF_REPO HF_INCLUDE GGUF_MATCH ALIAS CTX KV_TYPE MIN_FREE_GB EXTRA_ARGS
+    unset TITLE DETAIL HF_REPO HF_INCLUDE GGUF_MATCH ALIAS CTX CTX_MIN FIT_MARGIN_MB KV_TYPE MIN_FREE_GB BATCH UBATCH EXTRA_ARGS
     set -a; . "$f"; set +a
     ALIAS=${ALIAS:-$MODEL_KEY}
     CTX=${CTX:-32768}

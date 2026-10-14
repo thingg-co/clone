@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>clone: a coding agent on one DGX Spark</title>
-<meta name="description" content="A local coding agent on a DGX Spark: a model server with as much context as the box can hold, a terminal agent with tool calling, and what happened when six models were asked to find things in half a million tokens.">
+<meta name="description" content="A local coding agent on a DGX Spark: a model server with as much context as the box can hold, a terminal agent with tool calling, and a ranked comparison of which open models can still find things in half a million tokens.">
 <meta property="og:title" content="clone: a coding agent on one DGX Spark">
 <meta property="og:description" content="A model server, a terminal agent, and measurements of which open models can still find things in half a million tokens.">
 <meta property="og:type" content="website">
@@ -45,12 +45,20 @@ figure { margin: 30px 0 8px; }
 figure img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); }
 figcaption { color: var(--muted); font-size: 14px; margin-top: 10px; }
 .tablewrap { overflow-x: auto; margin: 22px -20px 22px; padding: 0 20px; }
-table { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 15px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+table { border-collapse: collapse; width: 100%; min-width: 860px; font-size: 15px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 th { text-align: left; font-size: 12.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 11px 14px; white-space: nowrap; }
 td { padding: 12px 14px; border-top: 1px solid var(--line); vertical-align: top; }
 td.model b { display: block; }
 td.model span, td small { color: var(--muted); font-size: 13.5px; }
 td.num { white-space: nowrap; }
+td.model b { white-space: nowrap; }
+td.model span, td small { display: block; min-width: 130px; }
+td.steps { min-width: 170px; }
+td.steps span { display: inline-block; white-space: nowrap; margin-right: 8px; }
+#measured th, #measured td { padding-left: 11px; padding-right: 11px; }
+#measured table { font-size: 14.5px; }
+@media (min-width: 1120px) { #measured .tablewrap { margin-left: -110px; margin-right: -110px; } }
+p.small { font-size: 14.5px; color: var(--muted); }
 .pass { color: var(--ok); font-weight: 600; }
 .fail { color: var(--bad); font-weight: 600; }
 code { font: 0.88em ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); padding: 1px 5px; border-radius: 4px; }
@@ -111,54 +119,79 @@ footer p { margin: 0 0 8px; }
     <p>A long window is only worth having if the model can still find things in it. The acceptance test fills the prompt with numbered records, thousands of lines like this one:</p>
     <pre>Record 9337: the access code for locker 9337 is 836244.</pre>
     <p>It then asks for three of the codes, one near the start, one in the middle and one near the end, and wants them back through a tool call. A size passes when the call is made and all three codes are right. It is a harsh test. It is also what a long window is for.</p>
-    <p>Results from 14 October 2026, all on the same Spark, all with thinking on:</p>
+    <p>Results from the same Spark, all with thinking on, ranked by how far each model stays exact: the largest prompt it answered with all three codes right, with every smaller prompt right as well. Ties go to the share of codes right, then to decode speed. Read-in is how fast the first recall prompt was read.</p>
     <div class="tablewrap">
       <table>
         <thead>
-          <tr><th>Model</th><th>Window served</th><th>Decode</th><th>Recall, codes right out of three</th></tr>
+          <tr><th>Model</th><th>Window served</th><th>Exact up to</th><th>Codes right, by prompt size</th><th>Thinks, tools</th><th>Decode</th><th>Read-in</th></tr>
         </thead>
         <tbody>
+          <!-- results:start -->
           <tr>
-            <td class="model"><b>Qwen3.8-27B</b><span>dense, 22 GB</span></td>
-            <td>950k<br><small>stretched from 256k</small></td>
+            <td class="model"><b>Qwen3.8-27B, 16-bit cache</b><span>dense 27B, NVFP4, 22 GB</span></td>
+            <td>950k<br><small>stretched from 256k, 16-bit cache</small></td>
+            <td class="num pass">507k</td>
+            <td class="steps"><span class="pass">97k&nbsp;3/3</span> <span class="pass">245k&nbsp;3/3</span> <span class="pass">507k&nbsp;3/3</span></td>
+            <td>yes</td>
             <td class="num">12 tok/s</td>
-            <td><span class="pass">3 at 97k, 245k and 507k</span></td>
+            <td class="num">920 tok/s</td>
           </tr>
           <tr>
-            <td class="model"><b>Qwen3.8-Flash-Next</b><span>125B, 6B active, 133 GB</span></td>
-            <td>524k<br><small>stretched from 256k</small></td>
-            <td class="num">49 tok/s</td>
-            <td><span class="pass">3 at 93k and 253k</span><br><span class="fail">2 at 411k, 505k and 516k</span></td>
+            <td class="model"><b>Qwen3.8-Flash-Next</b><span>125B, 6B active, NVFP4, 133 GB</span></td>
+            <td>524k<br><small>stretched from 256k, FP8 cache; past 256k it returns the neighbouring record</small></td>
+            <td class="num pass">253k</td>
+            <td class="steps"><span class="pass">93k&nbsp;3/3</span> <span class="pass">253k&nbsp;3/3</span> <span class="fail">411k&nbsp;2/3</span> <span class="fail">505k&nbsp;2/3</span> <span class="fail">516k&nbsp;2/3</span></td>
+            <td>yes</td>
+            <td class="num">44 tok/s</td>
+            <td class="num">2,650 tok/s</td>
           </tr>
           <tr>
-            <td class="model"><b>Nemotron 3 Super</b><span>120B, 12B active, 80 GB</span></td>
-            <td>1M<br><small>native</small></td>
-            <td class="num">16 tok/s</td>
-            <td><span class="fail">2 at 93k, 1 at 235k and 489k</span></td>
-          </tr>
-          <tr>
-            <td class="model"><b>Nemotron 3.5 Lightning</b><span>30B, 3B active, 22 GB</span></td>
-            <td>1M<br><small>native</small></td>
+            <td class="model"><b>Nemotron 3.5 Lightning</b><span>30B, 3B active, NVFP4, 22 GB</span></td>
+            <td>1.05M<br><small>native window, FP8 cache</small></td>
+            <td class="num pass">102k</td>
+            <td class="steps"><span class="pass">102k&nbsp;3/3</span> <span class="fail">232k&nbsp;1/3</span> <span class="fail">482k&nbsp;1/3</span> <span class="fail">986k&nbsp;1/3</span></td>
+            <td>yes</td>
             <td class="num">136 tok/s</td>
-            <td><span class="pass">3 at 102k</span><br><span class="fail">1 at 232k, 482k and 986k</span></td>
+            <td class="num">1,290 tok/s</td>
           </tr>
+          <tr>
+            <td class="model"><b>Laguna S 2.1</b><span>118B, 8B active, NVFP4, 100 GB</span></td>
+            <td>500k<br><small>trained to 1M, 500k fits here, FP8 cache; thinks on some requests only</small></td>
+            <td class="num fail">none</td>
+            <td class="steps"><span class="fail">93k&nbsp;2/3</span> <span class="fail">253k&nbsp;2/3</span> <span class="fail">411k&nbsp;1/3</span></td>
+            <td>no thinking, tool loop</td>
+            <td class="num">12 tok/s</td>
+            <td class="num">1,520 tok/s</td>
+          </tr>
+          <tr>
+            <td class="model"><b>Nemotron 3 Super</b><span>120B, 12B active, NVFP4, 80 GB</span></td>
+            <td>1M<br><small>native window, FP8 cache</small></td>
+            <td class="num fail">none</td>
+            <td class="steps"><span class="fail">93k&nbsp;2/3</span> <span class="fail">235k&nbsp;1/3</span> <span class="fail">489k&nbsp;1/3</span></td>
+            <td>yes</td>
+            <td class="num">16 tok/s</td>
+            <td class="num">1,045 tok/s</td>
+          </tr>
+          <!-- results:end -->
         </tbody>
       </table>
     </div>
+    <p class="small">The same numbers as data: <a href="results.json">results.json</a>. The control page on the Spark shows this table too, with each new run added as it finishes.</p>
     <p>Every model in the table thinks, calls a tool and finishes the tool loop at the window listed. Recall is where they part ways, and how they fail matters as much as where. The Nemotron models return a code from the wrong part of the prompt. Flash-Next, past the length it was trained for, returns the record next door:</p>
     <blockquote>
       <p>Asked for locker 9337, it answered with the code for locker 9338.</p>
       <p>Asked for locker 137, it answered with the code for locker 37, and quoted the line it believed it had read.</p>
     </blockquote>
     <p>The Qwen models are trained to 262,144 tokens, and their cards document a way to stretch that. What the stretch does depends on the model. The dense 27B stayed exact at twice its trained length. Flash-Next, which attends sparsely, loses its place. An older model, Qwen3-Coder-Next, stopped calling tools altogether. So a stretched window has to be tested on the model that will use it.</p>
-    <p>Where that leaves the three targets: Qwen3.8-27B is the only configuration that has been exact past 500k, and it is slow. Flash-Next is the model that suits the hardware, at 49 tokens a second, and it is exact inside 256k. Nothing tested so far is exact at a million.</p>
+    <p>Where that leaves the three targets: Qwen3.8-27B is the only configuration that has been exact past 500k, with a 16-bit cache at 507k and with an FP8 cache at 519k, and it is slow. Flash-Next is the model that suits the hardware, at 44 to 49 tokens a second, and it is exact inside 256k. Nothing has been shown exact at a million yet.</p>
+    <p>Being measured on the Spark now, with the same test: the 27B at its full 1.01M window, DeepSeek V4 Flash, GLM-5.3-Flash and Kimi Linear, which were all trained to a million tokens, Seed-OSS-36B, trained to 512k, and two more Qwen models. DeepSeek V4 Flash and GLM-5.3-Flash are larger than the machine at their release precision and run here at 2 to 3 bits per weight through llama.cpp. The table above fills in as each one finishes.</p>
   </section>
 
   <section>
     <h2>What the hardware is good for</h2>
     <p>The Spark is sold as 128 GB and reports 121.7 GiB of unified memory at 273 GB/s. Two rules follow from those numbers.</p>
-    <p>Decode speed is roughly bandwidth divided by the bytes of weights read per token. A sparse model with a few billion active parameters runs well however large it is in total. A dense model reads all of itself for every token, which is why a 125B model with 6B active does 49 tokens a second here and a dense 27B does 12.</p>
-    <p>Context comes out of what the weights leave. The server takes a fixed share of the memory, loads the weights and gives the rest to its cache. A model with 93 GiB of weights has room for a few hundred thousand tokens whatever window it was trained for, and a model trained for a million tokens can still be a poor reader of them.</p>
+    <p>Decode speed is roughly bandwidth divided by the bytes of weights read per token. A sparse model with a few billion active parameters runs well however large it is in total. A dense model reads all of itself for every token, which is why a 125B model with 6B active does 44 to 49 tokens a second here and a dense 27B does 12.</p>
+    <p>Context comes out of what the weights leave. The server takes a fixed share of the memory, loads the weights and gives the rest to its cache. A model with 93 GiB of weights has room for a few hundred thousand tokens whatever window it was trained for, unless most of its layers keep a compressed or linear cache, as DeepSeek V4 Flash and GLM-5.3-Flash do. And a model trained for a million tokens can still be a poor reader of them.</p>
     <p>Long prompts also cost time. Flash-Next reads about 2,500 tokens a second, so half a million tokens take under four minutes the first time. The dense 27B needs 22 minutes for the same prompt. The server caches what it has read, and a request that extends the previous one only pays for the new part.</p>
   </section>
 

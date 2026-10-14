@@ -22,8 +22,8 @@ at 273 GB/s. Two things follow from those numbers.
 Decode speed is roughly bandwidth divided by the bytes of weights read per
 token. A sparse model with a few billion active parameters runs well however
 large it is in total, and a dense model reads all of itself for every token.
-Measured here: 49 tok/s for a 125B model with 6B active, 12 tok/s for a dense
-27B.
+Measured here: 44 to 49 tok/s for a 125B model with 6B active, 12 tok/s for a
+dense 27B.
 
 Context comes out of what the weights leave. vLLM takes a fixed share of the
 121.7 GiB (`MEM_UTIL` in a profile), loads the weights and gives the rest to
@@ -39,22 +39,30 @@ numbered records ("Record 9337: the access code for locker 9337 is 836244."),
 asks for three of the codes, one near the start, one in the middle and one
 near the end, and wants them back through a tool call. A size passes when the
 call is made and all three codes are right. Thousands of nearly identical
-lines make it a harsh test. It is also the property a long window is for, and
-one model passes it.
+lines make it a harsh test. It is also the property a long window is for.
 
-Results from 2026-10-14, all on this Spark:
+`scripts/bench.py` wraps it. It measures decode speed on a short prompt,
+checks that the model thinks, calls a tool and uses the result, and then runs
+the recall test at 100k, 250k, 500k and 1M, or as far as the window goes.
+`spark/bake.sh` does that for a list of profiles in turn, downloading and
+switching as it goes, and appends a line per model to `run/results.jsonl`.
+The control page ranks everything measured so far. `scripts/results.py
+--publish` folds the runs into `docs/results.json` and rewrites the tables
+here and on the project page.
 
-| model | weights | window served | decode | recall |
-|---|---|---|---|---|
-| Qwen3.8-27B, dense | 22 GB | 950k, stretched from 256k | 12 tok/s | 3/3 at 97k, 245k and 507k |
-| Qwen3.8-Flash-Next, 125B with 6B active | 133 GB, 75 GiB resident | 524k, stretched from 256k | 49 tok/s | 3/3 at 93k and 253k, 2/3 at 411k, 505k and 516k |
-| Nemotron 3 Super, 120B with 12B active | 80 GB | 1M, native | 16 tok/s | 2/3 at 93k, 1/3 at 235k and 489k |
-| Nemotron 3.5 Lightning, 30B with 3B active | 22 GB | 1M, native | 136 tok/s | 3/3 at 102k, 1/3 at 232k, 482k and 986k |
-| Qwen3-Coder-Next, 80B with 3B active | 80 GB | 256k, native | 45 tok/s | not run |
+The ranking puts first the largest prompt answered exactly with every smaller
+one exact as well, then the share of codes right, then decode speed. All on
+this Spark, with thinking on where the model has it:
 
-Every row passes `fable --doctor` at the window listed: thinking and a tool
-call in one response, then the tool loop. The builds are NVFP4, except
-Coder-Next, which was FP8 and has since been deleted.
+<!-- results:start -->
+| | model | window served | exact up to | codes right, by prompt size | thinks, tools | decode | read-in |
+|---|---|---|---|---|---|---|---|
+| 1 | Qwen3.8-27B, 16-bit cache (dense 27B, NVFP4, 22 GB) | 950k, stretched from 256k, 16-bit cache | 507k | 97k 3/3, 245k 3/3, 507k 3/3 | yes | 12 tok/s | 920 tok/s |
+| 2 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
+| 3 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
+| 4 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
+| 5 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
+<!-- results:end -->
 
 How they fail matters as much as where. The Nemotron models return a code
 from the wrong part of the prompt. Flash-Next past its trained length returns
@@ -69,12 +77,18 @@ every prompt, long or short. What that does depends on the model, so it has
 to be tested each time:
 
 - Qwen3.8-27B, with dense attention in a quarter of its layers, stayed exact
-  at 507k with a factor of 4.
+  at 507k with a factor of 4 and a 16-bit cache, and at 519k with an FP8
+  cache.
 - Qwen3.8-Flash-Next attends sparsely and loses its place past the trained
   length. A factor of 2 with a 524k window does better than a factor of 4 with
   558k (2/3 against 0/3 at about 517k). Neither is exact.
 - Qwen3-Coder-Next, an older model whose card only claims 256k, stopped
-  calling tools altogether at a factor of 4.
+  calling tools altogether at a factor of 4. It is not in the table.
+
+DeepSeek V4 Flash, GLM-5.3-Flash and Kimi Linear are trained to 1M, and most
+of their layers keep a compressed or linear cache, so a full window costs a
+few GiB. The first two only fit this box at 2 to 3 bits per weight, through
+llama.cpp, which is a harsher cut than the 4-bit builds the rest run at.
 
 Long prompts cost time. Flash-Next reads about 2,500 tok/s, so a cold 500k
 prompt takes under four minutes. The dense 27B reads 900 tok/s for the first
@@ -85,11 +99,6 @@ from the end of an earlier prompt, so anything that changes the start of the
 conversation, or shortens it, means reading it all again. The agent keeps its
 system prompt fixed for that reason.
 
-Where that leaves the three targets: Qwen3.8-27B with its stretched window is
-the only configuration that has been exact past 500k, with thinking and tool
-calls, and it is slow. Flash-Next is the model that suits the hardware and is
-exact inside 256k. Nothing tested so far is exact at 1M.
-
 ## Profiles
 
 A profile in `config/vllm/` names the weights, the window, the parsers and the
@@ -97,11 +106,29 @@ memory share. `VLLM_PROFILE` and `VLLM_LONG` in `config/spark.env` pick one.
 
 | profile | what it is | windows |
 |---|---|---|
-| `qwen3.8-27b` | the one that passes the recall test past 500k | 256k native; `VLLM_LONG=1` or a token count stretches it |
+| `qwen3.8-27b` | dense 27B, exact past 500k, 16-bit cache | 256k native; `VLLM_LONG=1` or a token count stretches it to 900k |
+| `qwen3.8-27b-fp8` | the same model with an FP8 cache, which makes room for a full 1.01M | 256k native, 1.01M stretched |
 | `qwen3.8-flash-next` | fastest and strongest coder, served through a patched vLLM (below) | `VLLM_LONG=0` asks for 500k, `1` for the most that fits |
+| `qwen3.6-35b-a3b` | 35B with 3B active, small and fast | 256k native, 1.01M stretched |
+| `qwen3.5-122b`, `qwen3.5-122b-fp8` | 122B with 10B active, with a 16-bit or an FP8 cache | 256k native, 500k or 1.01M stretched |
 | `laguna-s-2.1` | Poolside's 118B coding model, trained to 1M | what its 93 GiB of weights leave room for |
 | `nemotron-3-super`, `nemotron-3.5-lightning` | native 1M windows that fail the recall test | 1M |
 | `gpt-oss-120b` | 128k | 128k |
+
+llama.cpp profiles in `config/models/`:
+
+| profile | what it is | windows |
+|---|---|---|
+| `deepseek-v4-flash` | DeepSeek V4 Flash, 284B with 13B active, 3-bit GGUF | trained to 1M; the largest that fits |
+| `glm-5.3-flash` | GLM-5.3-Flash, 320B with 18B active, 2-bit GGUF | trained to 1M; the largest that fits |
+| `kimi-linear-48b` | Kimi Linear 48B with 3B active, 8-bit, no thinking mode | trained to 1M; the largest that fits |
+| `seed-oss-36b` | Seed-OSS-36B, dense, 8-bit weights and cache | trained to 512k; the largest that fits |
+| `gpt-oss-120b`, `gpt-oss-20b` | OpenAI's open models | 128k |
+
+`CTX=fit` in a llama.cpp profile leaves the window to llama.cpp: it starts
+from the window the model was trained for and shrinks it until weights and
+cache fit, keeping `FIT_MARGIN_MB` free for the rest of the machine. The
+window it settled on is in the server log and on the control page.
 
 When vLLM refuses a window because the cache cannot hold it, it says what
 would fit. The launchers take 97% of that figure, write it to
@@ -122,9 +149,11 @@ Three ways to serve, one port:
   itself up on first use: the image build and checkpoint preparation take
   about twenty minutes once.
 - llama.cpp built from source (`spark/serve.sh`, GGUF profiles in
-  `config/models/`). 128k windows, good for gpt-oss, and it can run a small
-  sidekick model on a second port when the main profile leaves memory for
-  one. None of the vLLM profiles above do.
+  `config/models/`). This is how models whose release weights are larger
+  than the machine run here at all, at 2 to 3 bits per weight. It reads each
+  model's own chat template, so tool calls need no parser setting, and it
+  can run a small sidekick model on a second port when the main profile
+  leaves memory for one.
 
 ## Layout
 
@@ -140,6 +169,7 @@ Three ways to serve, one port:
     spark/service.sh           systemd user units for the llama.cpp instances
     spark/panel.py             control page: status, profile and context switch, connection strings
     spark/preflight.sh         memory, GPU processes, ports, does the profile fit
+    spark/bake.sh              measure a list of profiles in turn: download, serve, scripts/bench.py
     spark/bench.sh             llama-bench at 0 and 8k depth
     spark/ollama.sh            fallback: Ollama from the tarball, in-tree
     scripts/deploy.sh          rsync this tree to the Spark (and run bootstrap); leaves its spark.env alone
@@ -147,6 +177,8 @@ Three ways to serve, one port:
     scripts/status.sh          what the Spark is doing
     scripts/smoke-test.py      tool-calling check, standard library only
     scripts/context-test.py    recall across the window through a tool call; the acceptance test
+    scripts/bench.py           speed, thinking, tool loop and the recall test, one JSON line per model
+    scripts/results.py         rank the results; --publish writes docs/results.json and the tables
     agent/                     fable, the agent (see agent/README.md)
     docs/                      the project page, served by GitHub Pages
     claude-code/               run Claude Code against the Spark
@@ -193,7 +225,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.1.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.2.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -210,7 +242,9 @@ and a finish time. The profile table lists every vLLM and llama.cpp profile
 with its window range, how it thinks, its tool parser and whether the weights
 are on disk; pick one, pick a window and it rewrites `config/spark.env` on the
 Spark, reinstalls the unit and restarts. Weights can be pulled from the same
-table. The Connect box prints the full command for Claude Code and for fable
+table. The Reliability table ranks every model measured so far by how far it
+stays exact, with the codes it got right at each prompt size and its decode and
+read-in speed, and says which model a running bake-off is on. The Connect box prints the full command for Claude Code and for fable
 against whichever host name you choose, with copy buttons, and two tests: one
 request to `/v1/messages`, which is what Claude Code needs, and the
 tool-calling check. The host list has every name the Spark answers to
@@ -302,23 +336,27 @@ licenses.
 
 ## Open ends
 
-- A window of 1M that is also exact. Qwen3.8-27B with a 16-bit cache passed at
-  507k, but the cache that fits at that precision (950k tokens) has no
-  headroom over a prompt that fills the window: vLLM read a 935k prompt to
-  the end, ran out of blocks and started over from its last checkpoint. The
-  profile therefore stops at 900k, and nothing above 507k has been checked.
-  An FP8 cache, which NVIDIA's recipe for the checkpoint uses, would make room
-  for the full 1.01M. Whether recall survives FP8 at that length is the next
-  thing to measure.
-- Laguna S 2.1. The installed vLLM supports it and the weights are on the
-  Spark. What window its 93 GiB leaves, and whether it is exact there, has
-  not been measured.
+- A window of 1M that is also exact. Qwen3.8-27B with an FP8 cache is exact
+  at 519k, and the full 1.01M step is the next number in. With a 16-bit cache
+  that model passed at 507k, but the cache that fits at that precision (950k
+  tokens) has no headroom over a prompt that fills the window, so that
+  profile stops at 900k.
+- Running the bake-off: DeepSeek V4 Flash, GLM-5.3-Flash, Kimi Linear,
+  Seed-OSS-36B, Qwen3.6-35B-A3B and Qwen3.5-122B are queued on the Spark.
+  Larger models from the same labs (DeepSeek V4.1 Flash at 510 GB, MiniMax
+  M3, Kimi K3, GLM-5.3) have no build that fits one Spark, and MiMo-V2.6-Flash
+  only fits pruned or at under 2.5 bits.
 - Flash-Next with a 16-bit cache. At that precision only about 290k fits, so
   the stretched results above are all FP8. Whether the cache or the sparse
   attention is what loses its place past 256k is not settled.
-- The llama.cpp profiles other than gpt-oss-20b have not been run, and their
-  Hugging Face repo names are unchecked. `pull-model.sh` checks the repo
-  before downloading and says which line to fix.
+- A checker next to the main model. Cloudflare's Clef models answer typed
+  questions (yes or no, pick one, a score) about a passage in one pass,
+  without generating text, and llama.cpp serves them at `/v1/systemone`. The
+  27B one is good at spotting claims a passage does not support, which is the
+  failure that matters here. It has not been tried.
+- The older llama.cpp profiles (`glm-4.5-air`, `gpt-oss-120b`, `qwen3-235b`)
+  have not been run. `pull-model.sh` checks the repo before downloading and
+  says which line to fix.
 - Memory headroom. `MEM_UTIL` values are what worked on the night, with a
   desktop session and a download running. `spark/preflight.sh` and the
   control page show what is in use.

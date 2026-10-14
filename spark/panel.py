@@ -235,7 +235,7 @@ def profiles(env: dict) -> list:
             "ctx": to_int(p.get("MAX_LEN"), 0), "long_ctx": to_int(p.get("LONG_MAX_LEN")),
             "native_ctx": to_int(p.get("ROPE_ORIG")), "runner": bool(p.get("RUNNER")),
             "thinking": "native" if p.get("REASONING_PARSER") else "prompted",
-            "tools": p.get("TOOL_PARSER", ""), "min_free_gb": to_int(p.get("MIN_FREE_GB"), 0),
+            "tools": "vLLM parser " + p["TOOL_PARSER"] if p.get("TOOL_PARSER") else "none", "min_free_gb": to_int(p.get("MIN_FREE_GB"), 0),
             "downloaded": hf_complete(models / "hf-cache" / "hub" / ("models--" + repo.replace("/", "--"))),
             "downloading": fetching(repo),
         })
@@ -244,9 +244,9 @@ def profiles(env: dict) -> list:
         d = models / f.stem
         out.append({
             "backend": "llama", "key": f.stem, "served": p.get("ALIAS", f.stem), "repo": p.get("HF_REPO", ""),
-            "ctx": to_int(p.get("CTX"), 0), "long_ctx": None,
-            "thinking": "native" if re.search(r"gpt-oss|glm", f.stem) else "prompted",
-            "tools": "jinja template", "min_free_gb": to_int(p.get("MIN_FREE_GB"), 0),
+            "ctx": to_int(p.get("CTX"), 0), "long_ctx": None, "ctx_fit": p.get("CTX") == "fit",
+            "thinking": "native" if re.search(r"gpt-oss|glm", f.stem) or "--reasoning on" in p.get("EXTRA_ARGS", "") else "prompted",
+            "tools": "set by the model's template", "min_free_gb": to_int(p.get("MIN_FREE_GB"), 0),
             "downloaded": d.is_dir() and any(d.rglob("*.gguf")),
             "downloading": fetching(p.get("HF_REPO", "")),
         })
@@ -296,6 +296,55 @@ def memory() -> dict:
 def gpu() -> list:
     rows = run(["nvidia-smi", "--query-compute-apps=pid,used_memory,process_name", "--format=csv,noheader"]).strip().splitlines()
     return [r.strip() for r in rows if "," in r]
+
+
+# ---- measured results -----------------------------------------------------------
+def reach(recall: list) -> int:
+    """The largest prompt that came back exact, with every smaller size exact as well."""
+    best = 0
+    for r in sorted(recall, key=lambda r: r.get("tokens", 0)):
+        if not r.get("of") or r.get("right") != r.get("of"):
+            break
+        best = r["tokens"]
+    return best
+
+
+def results(published: Path | None = None, runs: Path | None = None) -> dict:
+    """Every measured model, best first: how far it stays exact, then the share of codes it
+    got right, then decode speed. docs/results.json holds the published set; each run of
+    scripts/bench.py appends a line to run/results.jsonl, and the newest line for a label wins."""
+    try:
+        base = json.loads((published or ROOT / "docs" / "results.json").read_text())
+    except (OSError, ValueError):
+        base = {}
+    by_label = {m["label"]: m for m in base.get("models", []) if m.get("label")}
+    try:
+        lines = (runs or ROOT / "run" / "results.jsonl").read_text().splitlines()
+    except OSError:
+        lines = []
+    for line in lines:
+        try:
+            m = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(m, dict) and m.get("kind") == "bench" and m.get("label"):
+            by_label[m["label"]] = m
+    models = []
+    for m in by_label.values():
+        rec = [r for r in m.get("recall") or [] if isinstance(r, dict)]
+        right, of = sum(r.get("right", 0) for r in rec), sum(r.get("of", 0) for r in rec)
+        models.append({**m, "recall": sorted(rec, key=lambda r: r.get("tokens", 0)), "reach": reach(rec), "right": right, "of": of})
+    models.sort(key=lambda m: (-m["reach"], -(m["right"] / m["of"] if m["of"] else 0), -(m.get("decode_tps") or 0)))
+    return {"updated": base.get("updated"), "machine": base.get("machine"), "test": base.get("test"), "models": models}
+
+
+def bake_state():
+    """What spark/bake.sh is measuring, from run/bake.state: item, position, start time."""
+    try:
+        item, pos, since = (ROOT / "run" / "bake.state").read_text().split()[:3]
+        return {"item": item, "position": pos, "since": to_int(since)}
+    except (OSError, ValueError):
+        return None
 
 
 # ---- jobs: one fixed command at a time, output to logs/panel-job.log ----------
@@ -433,6 +482,7 @@ def state() -> dict:
         "memory": memory(),
         "gpu": gpu(),
         "job": JOBS.state(),
+        "bake": bake_state(),
     }
 
 
@@ -482,6 +532,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send(200, PAGE.read_bytes(), "text/html")
         elif url.path == "/api/state":
             self.send(200, state())
+        elif url.path == "/api/results":
+            self.send(200, results())
         elif url.path.startswith("/dist/") and url.path.endswith(".tar.gz"):
             # whatever hash was asked for, the current build is what there is to give
             archive = fable_archive()

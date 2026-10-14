@@ -27,11 +27,18 @@ if [ "$have" -lt "$MIN_FREE_GB" ] && [ "${FORCE:-0}" != 1 ]; then
 fi
 
 # CTX in the profile is per slot. llama-server's -c is the total, divided between -np slots.
+# CTX=fit leaves -c out: llama.cpp starts from the model's trained window and shrinks it
+# until it fits, keeping FIT_MARGIN_MB free for everything else on the machine.
+if [ "$CTX" = fit ]; then
+    ctx_args=(--fit on --fit-ctx "${CTX_MIN:-65536}" --fit-target "${FIT_MARGIN_MB:-8192}")
+else
+    ctx_args=(-c $((CTX * SLOTS)))
+fi
 args=(
     -m "$gguf" --alias "$ALIAS"
     --host "${HOST:-0.0.0.0}" --port "$PORT"
     -ngl 999
-    -c $((CTX * SLOTS)) -np "$SLOTS"
+    "${ctx_args[@]}" -np "$SLOTS"
     -fa on
     -b "${BATCH:-2048}" -ub "${UBATCH:-512}"
     --cache-type-k "$KV_TYPE" --cache-type-v "$KV_TYPE"

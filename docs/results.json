@@ -1,0 +1,177 @@
+{
+ "updated": "2026-10-14",
+ "machine": "DGX Spark, 121.7 GiB unified memory",
+ "test": "Numbered records with random six-digit codes fill the prompt. Three codes are asked for, near the start, the middle and the end, and must come back through a tool call.",
+ "models": [
+  {
+   "label": "qwen3.8-27b",
+   "title": "Qwen3.8-27B, 16-bit cache",
+   "detail": "dense 27B, NVFP4, 22 GB",
+   "lab": "Alibaba",
+   "note": "stretched from 256k, 16-bit cache",
+   "window": 950000,
+   "decode_tps": 12.3,
+   "prefill_tps": 920,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 96690,
+     "right": 3,
+     "of": 3
+    },
+    {
+     "tokens": 244515,
+     "right": 3,
+     "of": 3
+    },
+    {
+     "tokens": 507360,
+     "right": 3,
+     "of": 3
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
+   "label": "qwen3.8-flash-next",
+   "title": "Qwen3.8-Flash-Next",
+   "detail": "125B, 6B active, NVFP4, 133 GB",
+   "lab": "Alibaba",
+   "note": "stretched from 256k, FP8 cache; past 256k it returns the neighbouring record",
+   "window": 524000,
+   "decode_tps": 43.6,
+   "prefill_tps": 2650,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 92748,
+     "right": 3,
+     "of": 3
+    },
+    {
+     "tokens": 253101,
+     "right": 3,
+     "of": 3
+    },
+    {
+     "tokens": 410906,
+     "right": 2,
+     "of": 3
+    },
+    {
+     "tokens": 504721,
+     "right": 2,
+     "of": 3
+    },
+    {
+     "tokens": 516466,
+     "right": 2,
+     "of": 3
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
+   "label": "nemotron-3.5-lightning",
+   "title": "Nemotron 3.5 Lightning",
+   "detail": "30B, 3B active, NVFP4, 22 GB",
+   "lab": "NVIDIA",
+   "note": "native window, FP8 cache",
+   "window": 1048576,
+   "decode_tps": 136.5,
+   "prefill_tps": 1290,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 102133,
+     "right": 3,
+     "of": 3
+    },
+    {
+     "tokens": 232133,
+     "right": 1,
+     "of": 3
+    },
+    {
+     "tokens": 482134,
+     "right": 1,
+     "of": 3
+    },
+    {
+     "tokens": 986135,
+     "right": 1,
+     "of": 3
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
+   "label": "laguna-s-2.1",
+   "title": "Laguna S 2.1",
+   "detail": "118B, 8B active, NVFP4, 100 GB",
+   "lab": "Poolside",
+   "note": "trained to 1M, 500k fits here, FP8 cache; thinks on some requests only",
+   "window": 500000,
+   "decode_tps": 12.0,
+   "prefill_tps": 1520,
+   "thinking": false,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 92545,
+     "right": 2,
+     "of": 3
+    },
+    {
+     "tokens": 253438,
+     "right": 2,
+     "of": 3
+    },
+    {
+     "tokens": 411022,
+     "right": 1,
+     "of": 3
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
+   "label": "nemotron-3-super",
+   "title": "Nemotron 3 Super",
+   "detail": "120B, 12B active, NVFP4, 80 GB",
+   "lab": "NVIDIA",
+   "note": "native window, FP8 cache",
+   "window": 1000000,
+   "decode_tps": 15.9,
+   "prefill_tps": 1045,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 93007,
+     "right": 2,
+     "of": 3
+    },
+    {
+     "tokens": 235357,
+     "right": 1,
+     "of": 3
+    },
+    {
+     "tokens": 489078,
+     "right": 1,
+     "of": 3
+    }
+   ],
+   "date": "2026-10-14"
+  }
+ ]
+}

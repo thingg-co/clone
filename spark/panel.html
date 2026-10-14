@@ -44,6 +44,9 @@ th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; p
 td { padding: 8px; border-top: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
 tr.current td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 td.name { font-weight: 600; }
+td small { display: block; color: var(--muted); font-size: 12px; font-weight: 400; white-space: normal; min-width: 150px; max-width: 230px; }
+td.steps { white-space: normal; min-width: 180px; }
+td.steps span { display: inline-block; white-space: nowrap; margin-right: 10px; }
 button, select, input { font: inherit; border-radius: 7px; border: 1px solid var(--line); background: var(--card); color: var(--ink); padding: 5px 11px; cursor: pointer; }
 button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
 input { cursor: text; }
@@ -97,6 +100,16 @@ pre.log { max-height: 320px; overflow-y: auto; white-space: pre-wrap; overflow-w
       <button id="pull">Pull weights</button>
     </div>
     <p class="note" id="profile-note"></p>
+  </section>
+
+  <section>
+    <h2>Reliability</h2>
+    <p class="note" id="bake" hidden style="margin:0 0 10px"></p>
+    <div class="tablewrap"><table>
+      <thead><tr><th></th><th>model</th><th>window</th><th>exact up to</th><th>codes right, by prompt size</th><th>thinks</th><th>tool loop</th><th>decode</th><th>read-in</th></tr></thead>
+      <tbody id="results"></tbody>
+    </table></div>
+    <p class="note" id="results-note"></p>
   </section>
 
   <section>
@@ -228,7 +241,7 @@ function renderProfiles() {
   $("profiles").replaceChildren(...S.profiles.map(p => {
     const id = p.backend + "/" + p.key;
     const radio = el("input", { type: "radio", name: "profile", checked: id === picked, onchange: () => { picked = id; pickedByUser = true; renderContext(true); } });
-    const ctx = p.long_ctx ? tokens(p.ctx) + " to " + tokens(p.long_ctx) : tokens(p.ctx);
+    const ctx = p.ctx_fit ? "largest that fits" : p.long_ctx ? tokens(p.ctx) + " to " + tokens(p.long_ctx) : tokens(p.ctx);
     const tr = el("tr", { className: p === cur ? "current" : "" },
       el("td", {}, radio), el("td", { className: "name", textContent: p.key }), el("td", { textContent: p.backend === "vllm" ? "vLLM" : "llama.cpp" }),
       el("td", { textContent: ctx }), el("td", { textContent: p.thinking === "native" ? "native" : "prompted by fable" }),
@@ -243,7 +256,7 @@ function renderContext(reset) {
   const p = S.profiles.find(x => x.backend + "/" + x.key === picked), sel = $("ctx");
   if (!p) return;
   const stretched = p.native_ctx && p.native_ctx !== p.ctx;   // its smallest window is already past the trained length
-  const options = [[0, tokens(p.ctx) + (stretched ? " (default)" : " (native)")]];
+  const options = [[0, p.ctx_fit ? "the largest that fits in memory" : tokens(p.ctx) + (stretched ? " (default)" : " (native)")]];
   if (p.long_ctx) { if (!p.runner && p.ctx < 524288 && 524288 < p.long_ctx) options.push([524288, "524k (YaRN x2)"]); options.push([1, tokens(p.long_ctx) + " (the maximum)"]); }
   const before = sel.value, same = sel.dataset.for === picked;
   sel.replaceChildren(...options.map(([v, label]) => el("option", { value: v, textContent: label })));
@@ -261,7 +274,8 @@ function renderContext(reset) {
   const notes = [];
   if (p.downloading) notes.push("The weights are downloading; it can be switched to when that finishes.");
   else if (!p.downloaded) notes.push("Not on disk yet: pull the weights first.");
-  if (chosen < 500000) notes.push("This is under the 500k floor.");
+  if (p.ctx_fit) notes.push("llama.cpp starts from the model's trained window and shrinks it until it fits beside the weights.");
+  else if (chosen < 500000) notes.push("This is under the 500k floor.");
   if (p.thinking !== "native") notes.push("No reasoning mode of its own: fable asks it to think in a <think> block; Claude Code gets no thinking from it.");
   if (p.min_free_gb) notes.push("Needs " + p.min_free_gb + " GB free to start.");
   $("profile-note").textContent = notes.join(" ");
@@ -306,6 +320,35 @@ function renderConnect() {
   for (const b of document.querySelectorAll('[data-act="messages"], [data-act="smoke"]')) { b.dataset.target = which.value; b.dataset.needs = which.value; }
 }
 
+let R = null, resultsKey = "", bakeItem = null;
+async function loadResults() {
+  try { R = await api("/api/results"); resultsKey = ""; renderResults(); } catch (e) { /* the state stream already reports a dead panel */ }
+}
+function renderResults() {
+  if (!R || !S) return;
+  const cur = currentProfile(), served = cur ? cur.key : "", b = S.bake;
+  if ((b && b.item) !== bakeItem) { bakeItem = b && b.item; loadResults(); }   // a model finished: there is a new row
+  const key = JSON.stringify([R, b, served]);
+  if (key === resultsKey) return;
+  resultsKey = key;
+  const rate = n => n == null ? "?" : Math.round(n).toLocaleString() + " tok/s";
+  const yes = v => el("td", { className: v ? "ok" : "bad", textContent: v ? "yes" : "no" });
+  $("results").replaceChildren(...R.models.map((m, i) => el("tr", { className: m.label === served ? "current" : "" },
+    el("td", { className: "muted", textContent: i + 1 }),
+    el("td", { className: "name" }, m.title || m.label, el("small", { textContent: m.detail || "" })),
+    el("td", {}, tokens(m.window), el("small", { textContent: m.note || "" })),
+    el("td", { className: m.reach ? "ok" : "bad", textContent: m.reach ? tokens(m.reach) : "none" }),
+    el("td", { className: "steps" }, ...m.recall.map(r => el("span", { className: r.right === r.of ? "ok" : r.right ? "warn" : "bad", textContent: tokens(r.tokens) + " " + r.right + "/" + r.of }))),
+    yes(m.thinking), yes(m.tool_loop), el("td", { textContent: rate(m.decode_tps) }), el("td", { textContent: rate(m.prefill_tps) }))));
+  $("results-note").textContent = (R.test ? R.test + " " : "") + "Ranked by the largest prompt answered exactly with every smaller one exact too, then by the share of codes right, then by decode speed. Read-in is the speed of the first recall prompt.";
+  $("bake").hidden = !b;
+  if (b) {
+    const since = new Date(b.since * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+    $("bake").textContent = b.position === "final" ? "Bake-off done; switching to " + b.item + "." :
+      "Bake-off running since " + since + ": measuring " + b.item + ", " + b.position.replace("/", " of ") + ". Switching models here interrupts it.";
+  }
+}
+
 function renderJob() {
   const j = S.job, log = $("joblog");
   const label = !j.name ? "idle" : j.running ? j.name + ": running" : j.name + (j.exit_code === 0 ? ": done" : ": failed (exit " + j.exit_code + ")");
@@ -319,7 +362,7 @@ function renderJob() {
 let lastUpdate = 0;
 function apply(state) {
   S = state; lastUpdate = Date.now();
-  renderDownloads(); renderStatus(); renderProfiles(); renderConnect(); renderJob();
+  renderDownloads(); renderStatus(); renderProfiles(); renderConnect(); renderJob(); renderResults();
   $("live").textContent = "live · " + new Date().toLocaleTimeString([], { hour12: false });
   if ($("error").textContent === "panel is not answering") $("error").textContent = "";
 }
@@ -348,6 +391,7 @@ $("showlog").onclick = async () => {
   try { out.textContent = (await api("/api/logs?unit=" + $("unit").value)).log; out.scrollTop = out.scrollHeight; } catch (e) { out.textContent = e.message; }
 };
 refresh(); if (!location.search.includes("poll")) listen(); setInterval(() => { if (Date.now() - lastUpdate > 6000) refresh(); }, 3000);
+loadResults(); setInterval(loadResults, 60000);
 </script>
 </body>
 </html>
