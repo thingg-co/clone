@@ -7,7 +7,8 @@ the results tables in docs/index.html and README.md from it. Standard library on
     python3 scripts/results.py --publish               # write docs/results.json and the table
 
 The ranking is the control page's (spark/panel.py results()): the largest prompt answered
-exactly with every smaller one exact too, then the share of codes right, then decode speed.
+exactly with every smaller one exact too, then the largest with at most one code wrong at each
+size, then the share of codes right, then decode speed, with sizes to the nearest 50k.
 """
 
 import argparse

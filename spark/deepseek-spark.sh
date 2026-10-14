@@ -69,6 +69,9 @@ case "$cmd" in
         util=$(python3 -c "print(round(min(0.9465, ($(mem_available_gb) - 4) / 121.7), 4))")
         log "DeepSeek V4 Flash, single-Spark build, on :$PORT: window $max_len, memory share $util"
         docker rm -f "$NAME" >/dev/null 2>&1 || true
+        # The image's own defaults are thinking off and effort high, which adds no instruction.
+        # EXTRA_VLLM_ARGS lands after its flags and wins, so a request that names no effort
+        # gets thinking at max; one that names an effort still gets that.
         set +e
         docker run --rm --name "$NAME" --gpus all --network host --ipc host --shm-size 16g \
             -e HOST=0.0.0.0 -e PORT="$PORT" -e SERVED_MODEL_NAME=deepseek-v4-flash-spark \
@@ -77,6 +80,7 @@ case "$cmd" in
             -e MODE=dspark -e DSPARK_TOKENS=5 -e DSPARK_CAPACITY=0 -e DSPARK_DYNAMIC_DRAFT_DEPTH=0 \
             -e DSPARK_DYNAMIC_DRAFT_DEPTH_WINDOW=8 -e DSPARK_DRAFT_EXPERTS=64 -e DSPARK_STRUCTURED_EXPERTS_PER_CATEGORY=32 \
             -e VLLM_USE_B12X_WO_PROJECTION=1 -e GPU_MEMORY_UTILIZATION="$util" -e VERIFY_MODEL_CHECKSUMS=0 \
+            -e EXTRA_VLLM_ARGS="--default-chat-template-kwargs.thinking=true --default-chat-template-kwargs.reasoning_effort=max" \
             -v "$DATA:/models" -v "$DATA/cache:/cache" \
             "$IMAGE" 2>&1 | tee -p >(head -n 5000 > "$LOG_DIR/deepseek-spark-start.log")
         code=${PIPESTATUS[0]}

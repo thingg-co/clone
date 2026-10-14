@@ -437,19 +437,27 @@ def gpu() -> list:
 
 
 # ---- measured results -----------------------------------------------------------
-def reach(recall: list) -> int:
-    """The largest prompt that came back exact, with every smaller size exact as well."""
+def reach(recall: list, slack: int = 0) -> int:
+    """The largest prompt that came back exact, with every smaller size exact as well. With
+    slack, each size may miss that many codes."""
     best = 0
     for r in sorted(recall, key=lambda r: r.get("tokens", 0)):
-        if not r.get("of") or r.get("right") != r.get("of"):
+        if not r.get("of") or r.get("right", 0) < r["of"] - slack:
             break
         best = r["tokens"]
     return best
 
 
+def band(tokens: int) -> int:
+    """A prompt size to the nearest 50k, for ranking. The same step of the test comes out a few
+    thousand tokens apart from one tokenizer to the next, which says nothing about the model."""
+    return round(tokens / 50_000)
+
+
 def results(published: Path | None = None, runs: Path | None = None) -> dict:
-    """Every measured model, best first: how far it stays exact, then the share of codes it
-    got right, then decode speed. docs/results.json holds the published set; each run of
+    """Every measured model, best first: how far it stays exact, then how far it stays within one
+    code of exact, then the share of codes it got right, then decode speed, with sizes compared
+    to the nearest 50k. docs/results.json holds the published set; each run of
     scripts/bench.py appends a line to run/results.jsonl, and the newest line for a label wins."""
     try:
         base = json.loads((published or ROOT / "docs" / "results.json").read_text())
@@ -474,8 +482,10 @@ def results(published: Path | None = None, runs: Path | None = None) -> dict:
     for m in by_label.values():
         rec = [r for r in m.get("recall") or [] if isinstance(r, dict)]
         right, of = sum(r.get("right", 0) for r in rec), sum(r.get("of", 0) for r in rec)
-        models.append({**m, "recall": sorted(rec, key=lambda r: r.get("tokens", 0)), "reach": reach(rec), "right": right, "of": of})
-    models.sort(key=lambda m: (-m["reach"], -(m["right"] / m["of"] if m["of"] else 0), -(m.get("decode_tps") or 0)))
+        models.append({**m, "recall": sorted(rec, key=lambda r: r.get("tokens", 0)), "reach": reach(rec), "near": reach(rec, 1),
+                       "right": right, "of": of})
+    models.sort(key=lambda m: (-band(m["reach"]), -band(m["near"]), -(m["right"] / m["of"] if m["of"] else 0),
+                               -(m.get("decode_tps") or 0)))
     return {"updated": base.get("updated"), "machine": base.get("machine"), "test": base.get("test"), "models": models,
             "checkers": list(checkers.values())}
 

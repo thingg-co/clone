@@ -131,6 +131,67 @@
    "date": "2026-10-14"
   },
   {
+   "label": "qwen3.5-122b-fp8",
+   "title": "Qwen3.5-122B-A10B, FP8 cache",
+   "detail": "122B, 10B active, NVFP4, 84 GB",
+   "note": "vLLM, stretched from 256k, FP8 cache",
+   "model": "qwen3.5-122b",
+   "window": 1010000,
+   "decode_tps": 14.1,
+   "prefill_tps": 1030,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 92710,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 90,
+     "finish": "tool_calls",
+     "written": 291
+    },
+    {
+     "tokens": 253171,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 297,
+     "finish": "tool_calls",
+     "written": 386
+    },
+    {
+     "tokens": 519125,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 890,
+     "finish": "tool_calls",
+     "written": 328
+    },
+    {
+     "tokens": 759710,
+     "right": 1,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 1266,
+     "finish": "tool_calls",
+     "written": 421
+    },
+    {
+     "tokens": 960042,
+     "right": 0,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 1403,
+     "finish": "tool_calls",
+     "written": 421
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
    "label": "qwen3.5-122b",
    "title": "Qwen3.5-122B-A10B",
    "detail": "122B, 10B active, NVFP4, 84 GB",
@@ -169,6 +230,47 @@
      "seconds": 785,
      "finish": "tool_calls",
      "written": 414
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
+   "label": "qwen3.8-flash-next",
+   "title": "Qwen3.8-Flash-Next",
+   "detail": "125B, 6B active, NVFP4, 133 GB",
+   "lab": "Alibaba",
+   "note": "stretched from 256k, FP8 cache; past 256k it returns the neighbouring record",
+   "window": 524000,
+   "decode_tps": 43.6,
+   "prefill_tps": 2650,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 92748,
+     "right": 3,
+     "of": 3
+    },
+    {
+     "tokens": 253101,
+     "right": 3,
+     "of": 3
+    },
+    {
+     "tokens": 410906,
+     "right": 2,
+     "of": 3
+    },
+    {
+     "tokens": 504721,
+     "right": 2,
+     "of": 3
+    },
+    {
+     "tokens": 516466,
+     "right": 2,
+     "of": 3
     }
    ],
    "date": "2026-10-14"
@@ -213,47 +315,6 @@
      "of": 3,
      "tool_call": true,
      "seconds": 1029
-    }
-   ],
-   "date": "2026-10-14"
-  },
-  {
-   "label": "qwen3.8-flash-next",
-   "title": "Qwen3.8-Flash-Next",
-   "detail": "125B, 6B active, NVFP4, 133 GB",
-   "lab": "Alibaba",
-   "note": "stretched from 256k, FP8 cache; past 256k it returns the neighbouring record",
-   "window": 524000,
-   "decode_tps": 43.6,
-   "prefill_tps": 2650,
-   "thinking": true,
-   "tool_call": true,
-   "tool_loop": true,
-   "recall": [
-    {
-     "tokens": 92748,
-     "right": 3,
-     "of": 3
-    },
-    {
-     "tokens": 253101,
-     "right": 3,
-     "of": 3
-    },
-    {
-     "tokens": 410906,
-     "right": 2,
-     "of": 3
-    },
-    {
-     "tokens": 504721,
-     "right": 2,
-     "of": 3
-    },
-    {
-     "tokens": 516466,
-     "right": 2,
-     "of": 3
     }
    ],
    "date": "2026-10-14"

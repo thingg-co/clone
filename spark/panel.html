@@ -370,7 +370,7 @@ function renderResults() {
     el("td", { className: m.reach ? "ok" : "bad", textContent: m.reach ? tokens(m.reach) : "none" }),
     el("td", { className: "steps" }, ...m.recall.map(r => el("span", { className: r.right === r.of ? "ok" : r.right ? "warn" : "bad", textContent: tokens(r.tokens) + " " + r.right + "/" + r.of }))),
     yes(m.thinking), yes(m.tool_loop), el("td", { textContent: rate(m.decode_tps) }), el("td", { textContent: rate(m.prefill_tps) }))));
-  $("results-note").textContent = (R.test ? R.test + " " : "") + "Ranked by the largest prompt answered exactly with every smaller one exact too, then by the share of codes right, then by decode speed. Read-in is the speed of the first recall prompt.";
+  $("results-note").textContent = (R.test ? R.test + " " : "") + "Ranked by the largest prompt answered exactly with every smaller one exact too, then by the largest with at most one code wrong at each size, then by the share of codes right, then by decode speed. Sizes count to the nearest 50k. Read-in is the speed of the first recall prompt.";
   const ch = R.checkers || [];
   $("checkers").hidden = !ch.length;
   $("checker-rows").replaceChildren(...ch.map(c => el("tr", {},
