@@ -139,7 +139,7 @@ def recall(args, model: str, sizes: list) -> list:
 def step(r: dict) -> dict:
     """One recall step as results.jsonl keeps it, from a context-test.py --record line."""
     return {"tokens": r["prompt_tokens"], "right": r["right"], "of": r["of"], "tool_call": r["tool_call"], "seconds": r["seconds"],
-            "finish": r.get("finish"), "written": r.get("written")}
+            "finish": r.get("finish"), "written": r.get("written"), **({"samples": r["samples"]} if r.get("samples") else {})}
 
 
 def main() -> int:

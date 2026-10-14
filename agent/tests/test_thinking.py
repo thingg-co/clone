@@ -62,6 +62,7 @@ def test_mode_by_model_and_setting():
     assert thinking.mode(s, "qwen3-coder-next") == "prompted"
     assert thinking.mode(s, "gpt-oss-120b") == "native"
     assert thinking.mode(s, "qwen3-next-80b-thinking") == "native"
+    assert thinking.mode(s, "deepseek-v4-flash") == "native" and thinking.mode(s, "deepseek-v4-flash-dspark") == "native"
     assert thinking.mode(Settings(thinking="prompted"), "gpt-oss-120b") == "prompted"
     assert thinking.mode(Settings(reasoning_effort="off"), "gpt-oss-120b") == "off"
 
@@ -86,6 +87,7 @@ def test_request_body_per_level():
     assert body("qwen3.8-flash-next", reasoning_effort="low") == {"reasoning_effort": "low"}
     assert body("glm-5.3-flash", reasoning_effort="medium") == {"reasoning_effort": "high"}
     assert body("nemotron-3-super") == {}                       # on or off only
+    assert body("deepseek-v4-flash") == {}                      # native, with no effort level to send
     assert body("nemotron-3-super", reasoning_effort="off") == {"chat_template_kwargs": {"enable_thinking": False}}
     assert body("glm-4.5-air", reasoning_effort="off") == {"chat_template_kwargs": {"enable_thinking": False}}
 

@@ -14,7 +14,7 @@ from typing import Any
 from . import prompts
 
 LEVELS = ("off", "low", "medium", "high", "max")
-NATIVE_NAMES = re.compile(r"gpt-oss|thinking|reasoner|qwq|glm|-r1|nemotron|qwen3\.[5-9]|flash-next|laguna", re.I)
+NATIVE_NAMES = re.compile(r"gpt-oss|thinking|reasoner|qwq|glm|-r1|deepseek-v(?:3\.[1-9]|[4-9])|nemotron|qwen3\.[5-9]|flash-next|laguna", re.I)
 OPEN, CLOSE = "<think>", "</think>"
 
 # What each family of natively reasoning models takes as reasoning_effort, by our level.
@@ -25,6 +25,7 @@ EFFORTS: tuple[tuple[re.Pattern[str], dict[str, str] | None], ...] = (
     (re.compile(r"qwen3\.[89]|flash-next|qwen4", re.I), {"low": "low", "medium": "medium", "high": "xhigh", "max": "xhigh"}),
     (re.compile(r"glm-5", re.I), {"low": "low", "medium": "high", "high": "max", "max": "max"}),
     (re.compile(r"nemotron|laguna", re.I), None),  # on or off only, through enable_thinking
+    (re.compile(r"deepseek", re.I), None),         # no effort level wired up; the server keeps thinking on
 )
 _BLOCK = re.compile(r"^\s*<think>.*?(</think>\s*|$)", re.S)
 
