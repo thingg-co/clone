@@ -87,7 +87,10 @@ def test_request_body_per_level():
     assert body("qwen3.8-flash-next", reasoning_effort="low") == {"reasoning_effort": "low"}
     assert body("glm-5.3-flash", reasoning_effort="medium") == {"reasoning_effort": "high"}
     assert body("nemotron-3-super") == {}                       # on or off only
-    assert body("deepseek-v4-flash") == {}                      # native, with no effort level to send
+    assert body("deepseek-v4-flash") == {"reasoning_effort": "high"}
+    assert body("deepseek-v4-flash", reasoning_effort="medium") == {}   # its template has no medium
+    llama = Client(Settings(backend="llama.cpp"), model="deepseek-v4-flash")._extra_body()
+    assert llama == {"chat_template_kwargs": {"reasoning_effort": "high"}}
     assert body("nemotron-3-super", reasoning_effort="off") == {"chat_template_kwargs": {"enable_thinking": False}}
     assert body("glm-4.5-air", reasoning_effort="off") == {"chat_template_kwargs": {"enable_thinking": False}}
 

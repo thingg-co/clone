@@ -125,6 +125,7 @@ memory share. `VLLM_PROFILE` and `VLLM_LONG` in `config/spark.env` pick one.
 | `deepseek-v4-flash-spark` | DeepSeek V4 Flash in 0xSero's single-Spark build: pruned experts, 3-bit EXL3, DSpark draft, through a patched vLLM (below) | 262k at most |
 | `laguna-s-2.1` | Poolside's 118B coding model, trained to 1M | what its 93 GiB of weights leave room for |
 | `nemotron-3-super`, `nemotron-3.5-lightning` | native 1M windows that fail the recall test | 1M |
+| `nemotron-puzzle-75b` | Super cut down to 75B with 9B active and distilled at long context | 1M (the card's; its config says 256k) |
 | `gpt-oss-120b` | 128k | 128k |
 
 llama.cpp profiles in `config/models/`:
@@ -133,7 +134,13 @@ llama.cpp profiles in `config/models/`:
 |---|---|---|
 | `deepseek-v4-flash` | DeepSeek V4 Flash, 284B with 13B active, 3-bit GGUF | trained to 1M; the largest that fits |
 | `deepseek-v4-flash-q2`, `deepseek-v4-flash-dspark` | the same at 2 bits, alone and with DeepSeek's DSpark draft model for faster decoding | the largest that fits |
+| `deepseek-v4-flash-reap150`, `deepseek-v4-flash-reap200` | the same with experts pruned to 150B (in DeepSeek's own FP4, 85 GB) or 200B (3-bit, 93 GB) | the largest that fits |
 | `glm-5.3-flash` | GLM-5.3-Flash, 320B with 18B active, 2-bit GGUF | trained to 1M; the largest that fits |
+| `glm-5.3-flash-reap-coder` | the same pruned to 144 experts and tuned on coding sessions, 4-bit | the largest that fits |
+| `mimo-v2.6-flash-reap` | Xiaomi MiMo-V2.6-Flash with half its experts, FP4 experts | trained to 1M; the largest that fits |
+| `dots3-note` | dots3-note preview, 280B with 16B active, 2-bit | trained to 512k; the largest that fits |
+| `k2-horizon-mova` | K2-Horizon MoVA, 36B with 4B active, 8-bit weights and cache | trained to 512k; the largest that fits |
+| `nemotron-cascade-2` | Nemotron-Cascade-2, 30B with 3B active, 8-bit | 1M; the largest that fits |
 | `kimi-linear-48b` | Kimi Linear 48B with 3B active, 8-bit, no thinking mode | trained to 1M; the largest that fits |
 | `seed-oss-36b` | Seed-OSS-36B, dense, 8-bit weights and cache | trained to 512k; the largest that fits |
 | `clef`, `clef-flash` | Cloudflare's decision models: typed answers at `/v1/systemone`, no text | passages up to 128k |
@@ -249,7 +256,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.8.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.9.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -399,15 +406,17 @@ licenses.
   at 507k; the cache that fits at that precision (950k tokens) has no headroom
   over a prompt that fills the window, so that profile stops at 900k, and its
   900k step is queued.
-- Running the bake-off: Qwen3.5-122B (500k with a 16-bit cache, 1M with
-  FP8), DeepSeek V4 Flash (2-bit, 2-bit with its DSpark draft, and 0xSero's
-  single-Spark build), GLM-5.3-Flash, Kimi Linear and Seed-OSS-36B are queued
-  on the Spark, then the models measured before, Flash-Next included, again
-  with `scripts/bench.py`. Clef and Clef-Flash get `scripts/clef-test.py`, the
+- Running the bake-off: Qwen3.5-122B with an FP8 cache at 1M, DeepSeek V4
+  Flash (2-bit, 2-bit with its DSpark draft, pruned to 150B and to 200B, and
+  0xSero's single-Spark build), Nemotron Puzzle 75B, GLM-5.3-Flash (2-bit, and
+  pruned at 4-bit), MiMo-V2.6-Flash pruned, Kimi Linear, Seed-OSS-36B,
+  Nemotron-Cascade-2, dots3-note and K2-Horizon MoVA are queued on the Spark,
+  then the models measured before, Flash-Next included, again with
+  `scripts/bench.py`. Clef and Clef-Flash get `scripts/clef-test.py`, the
   same records as multiple choice and as claims to check.
   Larger models from the same labs (DeepSeek V4.1 Flash at 510 GB, MiniMax
-  M3, Kimi K3, GLM-5.3) have no build that fits one Spark, and MiMo-V2.6-Flash
-  only fits pruned or at under 2.5 bits.
+  M3, Kimi K3, GLM-5.3) have no build that fits one Spark. Inkling-Small
+  (Thinking Machines) needs llama.cpp support that is still a draft.
 - Flash-Next with a 16-bit cache. At that precision only about 290k fits, so
   the stretched results above are all FP8. Whether the cache or the sparse
   attention is what loses its place past 256k is not settled.

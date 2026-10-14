@@ -25,7 +25,9 @@ EFFORTS: tuple[tuple[re.Pattern[str], dict[str, str] | None], ...] = (
     (re.compile(r"qwen3\.[89]|flash-next|qwen4", re.I), {"low": "low", "medium": "medium", "high": "xhigh", "max": "xhigh"}),
     (re.compile(r"glm-5", re.I), {"low": "low", "medium": "high", "high": "max", "max": "max"}),
     (re.compile(r"nemotron|laguna", re.I), None),  # on or off only, through enable_thinking
-    (re.compile(r"deepseek", re.I), None),         # no effort level wired up; the server keeps thinking on
+    # DeepSeek V4's template (the one in the GGUF builds) knows only high and max; anything
+    # else leaves its effort instruction out.
+    (re.compile(r"deepseek", re.I), {"high": "high", "max": "max"}),
 )
 _BLOCK = re.compile(r"^\s*<think>.*?(</think>\s*|$)", re.S)
 
