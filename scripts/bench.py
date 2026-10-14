@@ -117,13 +117,14 @@ def tools_and_thinking(server: Server, model: str) -> dict:
 
 
 def ladder(window) -> list:
-    """Prompt sizes, in thousands of tokens: 100, 250, 500 and 1000 where they fit, then the top of the
-    window, short of it by the question and a whole 32,768-token answer (context-test.py's budget)."""
+    """Prompt sizes, in thousands of tokens: 100, 250, 500, 750 and 1000 where they fit, then the top of the
+    window, short of it by the question and a whole 32,768-token answer (context-test.py's budget).
+    Each size extends the one before, so with prefix caching an extra step costs only its answer."""
     if not window:
         return [100]
     top = (window - 8000 - 32768) // 1000
-    sizes = [s for s in (100, 250, 500, 1000) if s <= top]
-    if not sizes or top > sizes[-1] * 1.1:
+    sizes = [s for s in (100, 250, 500, 750, 1000) if s <= top]
+    if not sizes or top > sizes[-1] * 1.05:
         sizes.append(top)
     return sizes
 
@@ -170,9 +171,9 @@ def main() -> int:
               "detail": args.detail, "note": args.note, "model": model, "window": window}
     print(f"{args.label}: {model}, window {window}", flush=True)
 
-    for name, step in (("speed", speed), ("tools and thinking", tools_and_thinking)):
+    for name, check in (("speed", speed), ("tools and thinking", tools_and_thinking)):
         try:
-            record.update(step(server, model))
+            record.update(check(server, model))
         except (urllib.error.URLError, OSError, KeyError, ValueError) as e:  # a failed check is a result too
             record.setdefault("errors", []).append(f"{name}: {e}")
         print(f"  {name}: " + ", ".join(f"{k} {record.get(k)}" for k in ("decode_tps", "ttft_ms", "thinking", "tool_call", "tool_loop") if k in record), flush=True)

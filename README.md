@@ -43,7 +43,8 @@ lines make it a harsh test. It is also the property a long window is for.
 
 `scripts/bench.py` wraps it. It measures decode speed on a short prompt,
 checks that the model thinks, calls a tool and uses the result, and then runs
-the recall test at 100k, 250k, 500k and 1M, or as far as the window goes.
+the recall test at 100k, 250k, 500k, 750k and 1M, or as far as the window
+goes. Each size extends the one before, so the server reads only the new part.
 `spark/bake.sh` does that for a list of profiles in turn, downloading and
 switching as it goes, and appends a line per model to `run/results.jsonl`.
 The control page ranks everything measured so far. `scripts/results.py
@@ -57,14 +58,15 @@ this Spark, with thinking on where the model has it:
 <!-- results:start -->
 | | model | window served | exact up to | codes right, by prompt size | thinks, tools | decode | read-in |
 |---|---|---|---|---|---|---|---|
-| 1 | Qwen3.8-27B, FP8 cache (dense 27B, NVFP4, 22 GB) | 1.01M, vLLM, stretched from 256k, FP8 cache | 519k | 93k 3/3, 253k 3/3, 519k 3/3, 986k 2/3 | yes | 12 tok/s | 918 tok/s |
-| 2 | Qwen3.8-27B, 16-bit cache (dense 27B, NVFP4, 22 GB) | 950k, stretched from 256k, 16-bit cache | 507k | 97k 3/3, 245k 3/3, 507k 3/3 | yes | 12 tok/s | 920 tok/s |
-| 3 | DeepSeek V4 Flash (284B, 13B active, 3-bit GGUF, 104 GB) | 991k, llama.cpp, 16-bit cache | 255k | 61k 3/3, 255k 3/3, 502k 0/3, 970k 2/3 | yes | 16 tok/s | 300 tok/s |
-| 4 | Qwen3.6-35B-A3B (35B, 3B active, NVFP4, 23 GB) | 1.01M, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 519k 2/3, 1M 1/3 | yes | 77 tok/s | 2,897 tok/s |
-| 5 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
-| 6 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
-| 7 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
-| 8 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
+| 1 | DeepSeek V4 Flash (284B, 13B active, 3-bit GGUF, 104 GB) | 857k, llama.cpp, 16-bit cache, reasoning effort max | 805k | 61k 3/3, 255k 3/3, 501k 3/3, 805k 3/3 | yes | 19 tok/s | 325 tok/s |
+| 2 | Qwen3.8-27B, FP8 cache (dense 27B, NVFP4, 22 GB) | 1.01M, vLLM, stretched from 256k, FP8 cache | 519k | 93k 3/3, 253k 3/3, 519k 3/3, 986k 2/3 | yes | 12 tok/s | 918 tok/s |
+| 3 | Qwen3.8-27B, 16-bit cache (dense 27B, NVFP4, 22 GB) | 950k, stretched from 256k, 16-bit cache | 507k | 97k 3/3, 245k 3/3, 507k 3/3 | yes | 12 tok/s | 920 tok/s |
+| 4 | Qwen3.5-122B-A10B (122B, 10B active, NVFP4, 84 GB) | 500k, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 492k 2/3 | yes | 14 tok/s | 1,042 tok/s |
+| 5 | Qwen3.6-35B-A3B (35B, 3B active, NVFP4, 23 GB) | 1.01M, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 519k 2/3, 1M 1/3 | yes | 77 tok/s | 2,897 tok/s |
+| 6 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
+| 7 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
+| 8 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
+| 9 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
 <!-- results:end -->
 
 How they fail matters as much as where. The Nemotron models return a code
@@ -89,6 +91,8 @@ to be tested each time:
   558k (2/3 against 0/3 at about 517k). Neither is exact.
 - Qwen3.6-35B-A3B, small and fast at 77 tok/s, stayed exact at 253k with a
   factor of 4, then got 2/3 at 519k and 1/3 at 1M.
+- Qwen3.5-122B-A10B, stretched to 500k with a 16-bit cache, stayed exact at
+  253k. At 492k it got two of three, giving locker 870's code for locker 8870.
 - Qwen3-Coder-Next, an older model whose card only claims 256k, stopped
   calling tools altogether at a factor of 4. It is not in the table.
 
@@ -96,10 +100,18 @@ DeepSeek V4 Flash, GLM-5.3-Flash and Kimi Linear are trained to 1M, and most
 of their layers keep a compressed or linear cache, so a full window costs a
 few GiB. The first two only fit this box at 2 to 3 bits per weight, through
 llama.cpp, which is a harsher cut than the 4-bit builds the rest run at.
-DeepSeek at 3 bits was exact to 255k. At 502k it wrote down the wrong code
-for the middle locker while thinking, started to doubt its lookups and never
-called the tool. At 970k it got two of three, giving locker 26499's code for
-locker 26995, after 72 minutes of reading.
+
+DeepSeek's template asks it to reason at length only when the request sets a
+reasoning effort of high or max, and the profiles set max. At max the 3-bit
+build was exact at every size tried, up to 805k, and no answer ran past 600
+tokens. Its reasoning opens by saying it will search for each record before
+it names a code. At its default effort it was exact to 255k. At 502k it wrote
+down the wrong code for the middle locker while thinking and never called the
+tool. Given 32,768 tokens instead of 4,000, it went back and forth over that
+code until they ran out. Two more tries at normal sampling got one and two of
+three. At 970k it got two of three, giving locker 26499's code for locker
+26995. The max run had an 857k window, less than the earlier ones because
+downloads were holding memory, so it runs again near 1M once they finish.
 
 Long prompts cost time. Flash-Next reads about 2,500 tok/s, so a cold 500k
 prompt takes under four minutes. The dense 27B reads 900 tok/s for the first
@@ -256,7 +268,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.10.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.11.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -401,8 +413,10 @@ licenses.
 
 ## Open ends
 
-- A window of 1M that is also exact. Qwen3.8-27B with an FP8 cache is exact
-  at 519k and got two of three at 986k. With a 16-bit cache that model passed
+- A window of 1M that is also exact. DeepSeek V4 Flash at 3 bits and max
+  effort is exact to 805k, the most its window held on that run, and runs
+  again near 1M once the downloads are done. Qwen3.8-27B with an FP8 cache is
+  exact at 519k and got two of three at 986k. With a 16-bit cache that model passed
   at 507k; the cache that fits at that precision (950k tokens) has no headroom
   over a prompt that fills the window, so that profile stops at 900k, and its
   900k step is queued.

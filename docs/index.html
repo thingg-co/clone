@@ -128,6 +128,15 @@ footer p { margin: 0 0 8px; }
         <tbody>
           <!-- results:start -->
           <tr>
+            <td class="model"><b>DeepSeek V4 Flash</b><span>284B, 13B active, 3-bit GGUF, 104 GB</span></td>
+            <td>857k<br><small>llama.cpp, 16-bit cache, reasoning effort max</small></td>
+            <td class="num pass">805k</td>
+            <td class="steps"><span class="pass">61k&nbsp;3/3</span> <span class="pass">255k&nbsp;3/3</span> <span class="pass">501k&nbsp;3/3</span> <span class="pass">805k&nbsp;3/3</span></td>
+            <td>yes</td>
+            <td class="num">19 tok/s</td>
+            <td class="num">325 tok/s</td>
+          </tr>
+          <tr>
             <td class="model"><b>Qwen3.8-27B, FP8 cache</b><span>dense 27B, NVFP4, 22 GB</span></td>
             <td>1.01M<br><small>vLLM, stretched from 256k, FP8 cache</small></td>
             <td class="num pass">519k</td>
@@ -146,13 +155,13 @@ footer p { margin: 0 0 8px; }
             <td class="num">920 tok/s</td>
           </tr>
           <tr>
-            <td class="model"><b>DeepSeek V4 Flash</b><span>284B, 13B active, 3-bit GGUF, 104 GB</span></td>
-            <td>991k<br><small>llama.cpp, 16-bit cache</small></td>
-            <td class="num pass">255k</td>
-            <td class="steps"><span class="pass">61k&nbsp;3/3</span> <span class="pass">255k&nbsp;3/3</span> <span class="fail">502k&nbsp;0/3</span> <span class="fail">970k&nbsp;2/3</span></td>
+            <td class="model"><b>Qwen3.5-122B-A10B</b><span>122B, 10B active, NVFP4, 84 GB</span></td>
+            <td>500k<br><small>vLLM, stretched from 256k, 16-bit cache</small></td>
+            <td class="num pass">253k</td>
+            <td class="steps"><span class="pass">93k&nbsp;3/3</span> <span class="pass">253k&nbsp;3/3</span> <span class="fail">492k&nbsp;2/3</span></td>
             <td>yes</td>
-            <td class="num">16 tok/s</td>
-            <td class="num">300 tok/s</td>
+            <td class="num">14 tok/s</td>
+            <td class="num">1,042 tok/s</td>
           </tr>
           <tr>
             <td class="model"><b>Qwen3.6-35B-A3B</b><span>35B, 3B active, NVFP4, 23 GB</span></td>
@@ -210,8 +219,8 @@ footer p { margin: 0 0 8px; }
       <p>Asked for locker 137, it answered with the code for locker 37, and quoted the line it believed it had read.</p>
     </blockquote>
     <p>The Qwen models are trained to 262,144 tokens, and their cards document a way to stretch that. What the stretch does depends on the model. The dense 27B stayed exact at twice its trained length. Flash-Next, which attends sparsely, loses its place. An older model, Qwen3-Coder-Next, stopped calling tools altogether. So a stretched window has to be tested on the model that will use it.</p>
-    <p>Where that leaves the three targets: Qwen3.8-27B is the only configuration that has been exact past 500k, with a 16-bit cache at 507k and with an FP8 cache at 519k, and it is slow. At 986k, with the FP8 cache, it got two codes of three: asked for locker 34548, it gave the code for locker 34458 and quoted the line as if it had read it. It took 46 minutes to read that prompt. DeepSeek V4 Flash, trained to a million tokens and run here at 3 bits, was exact to 255k. At 502k it wrote down the wrong code for the middle locker while thinking, began to doubt its lookups and never called the tool. At 970k it called the tool and got two of three, giving the code for locker 26499 when asked for locker 26995, after 72 minutes of reading. Qwen3.6-35B-A3B is the fast one, at 77 tokens a second, and exact to 253k, with two of three at 519k and one at a million. Flash-Next is the model that suits the hardware, at 44 to 49 tokens a second, and it is exact inside 256k. Nothing has been shown exact at a million yet.</p>
-    <p>Being measured on the Spark now, with the same test: Qwen3.5-122B-A10B with an FP8 cache at a million; DeepSeek V4 Flash at 2 bits, with and without its DSpark draft model, with its experts pruned to 150B and to 200B, and in 0xSero's single-Spark build; Nemotron Puzzle 75B, Super cut down and distilled at long context; GLM-5.3-Flash at 2 bits and pruned at 4 bits; MiMo-V2.6-Flash with half its experts; Kimi Linear and Nemotron-Cascade-2, all trained to a million tokens; and Seed-OSS-36B, dots3-note and K2-Horizon MoVA, trained to 512k. After them, the models above are measured again with the same script, so every row is taken the same way. DeepSeek V4 Flash, GLM-5.3-Flash and MiMo-V2.6-Flash are larger than the machine at their release precision and run here either at 2 to 3 bits per weight or with experts pruned, through llama.cpp. The table above fills in as each one finishes.</p>
+    <p>Where that leaves the three targets: DeepSeek V4 Flash, trained to a million tokens and run here at 3 bits, is the one configuration that has been exact past 600k. Its template tells it to reason at length only when the request asks for an effort of high or max, and the server now asks for max. At max it was exact at 61k, 255k, 501k and 805k, and no answer ran past 600 tokens. At its default effort it was exact to 255k. At 502k it wrote down the wrong code for the middle locker while thinking and never called the tool, even with 32,768 tokens to do it in, and two more tries at that size got one and two of three. The max run had an 857k window, smaller than before because downloads were holding memory, so it runs again near a million when they finish. Qwen3.8-27B is exact to 519k with an FP8 cache, and it is slow. At 986k it got two codes of three: asked for locker 34548, it gave the code for locker 34458 and quoted the line as if it had read it. It took 46 minutes to read that prompt. Qwen3.5-122B-A10B was exact to 253k and at 492k gave the code for locker 870 when asked for locker 8870. Qwen3.6-35B-A3B is the fast one, at 77 tokens a second, and exact to 253k, with two of three at 519k and one at a million. Flash-Next is the model that suits the hardware, at 44 to 49 tokens a second, and it is exact inside 256k. Nothing has been shown exact at a million yet.</p>
+    <p>Being measured on the Spark now, with the same test: Qwen3.5-122B-A10B with an FP8 cache at a million; DeepSeek V4 Flash at 3 bits again, near a million; DeepSeek V4 Flash at 2 bits, with and without its DSpark draft model, with its experts pruned to 150B and to 200B, and in 0xSero's single-Spark build; Nemotron Puzzle 75B, Super cut down and distilled at long context; GLM-5.3-Flash at 2 bits and pruned at 4 bits; MiMo-V2.6-Flash with half its experts; Kimi Linear and Nemotron-Cascade-2, all trained to a million tokens; and Seed-OSS-36B, dots3-note and K2-Horizon MoVA, trained to 512k. After them, the models above are measured again with the same script, so every row is taken the same way. DeepSeek V4 Flash, GLM-5.3-Flash and MiMo-V2.6-Flash are larger than the machine at their release precision and run here either at 2 to 3 bits per weight or with experts pruned, through llama.cpp. The table above fills in as each one finishes.</p>
   </section>
 
   <section>

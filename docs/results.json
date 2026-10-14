@@ -4,6 +4,58 @@
  "test": "Numbered records with random six-digit codes fill the prompt. Three codes are asked for, near the start, the middle and the end, and must come back through a tool call.",
  "models": [
   {
+   "label": "deepseek-v4-flash",
+   "title": "DeepSeek V4 Flash",
+   "detail": "284B, 13B active, 3-bit GGUF, 104 GB",
+   "note": "llama.cpp, 16-bit cache, reasoning effort max",
+   "model": "deepseek-v4-flash",
+   "window": 857088,
+   "decode_tps": 19.2,
+   "prefill_tps": 325,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 61494,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 189,
+     "finish": "tool_calls",
+     "written": 171
+    },
+    {
+     "tokens": 254778,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 788,
+     "finish": "tool_calls",
+     "written": 236
+    },
+    {
+     "tokens": 501486,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 1488,
+     "finish": "tool_calls",
+     "written": 574
+    },
+    {
+     "tokens": 804678,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 2521,
+     "finish": "tool_calls",
+     "written": 518
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
    "label": "qwen3.8-27b-fp8",
    "title": "Qwen3.8-27B, FP8 cache",
    "detail": "dense 27B, NVFP4, 22 GB",
@@ -79,45 +131,44 @@
    "date": "2026-10-14"
   },
   {
-   "label": "deepseek-v4-flash",
-   "title": "DeepSeek V4 Flash",
-   "detail": "284B, 13B active, 3-bit GGUF, 104 GB",
-   "note": "llama.cpp, 16-bit cache",
-   "model": "deepseek-v4-flash",
-   "window": 991232,
-   "decode_tps": 16.3,
-   "prefill_tps": 300,
+   "label": "qwen3.5-122b",
+   "title": "Qwen3.5-122B-A10B",
+   "detail": "122B, 10B active, NVFP4, 84 GB",
+   "note": "vLLM, stretched from 256k, 16-bit cache",
+   "model": "qwen3.5-122b",
+   "window": 500000,
+   "decode_tps": 14.0,
+   "prefill_tps": 1042,
    "thinking": true,
    "tool_call": true,
    "tool_loop": true,
    "recall": [
     {
-     "tokens": 61402,
+     "tokens": 92710,
      "right": 3,
      "of": 3,
      "tool_call": true,
-     "seconds": 205
+     "seconds": 89,
+     "finish": "tool_calls",
+     "written": 291
     },
     {
-     "tokens": 255064,
+     "tokens": 253171,
      "right": 3,
      "of": 3,
      "tool_call": true,
-     "seconds": 841
+     "seconds": 291,
+     "finish": "tool_calls",
+     "written": 319
     },
     {
-     "tokens": 501574,
-     "right": 0,
-     "of": 3,
-     "tool_call": false,
-     "seconds": 1888
-    },
-    {
-     "tokens": 969772,
+     "tokens": 491952,
      "right": 2,
      "of": 3,
      "tool_call": true,
-     "seconds": 4311
+     "seconds": 785,
+     "finish": "tool_calls",
+     "written": 414
     }
    ],
    "date": "2026-10-14"
