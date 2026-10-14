@@ -7,10 +7,13 @@
 #   FINAL=vllm:qwen3.8-27b-fp8:1 spark/bake.sh ...   # serve this one when the queue is done
 #   AFTER=<pid> spark/bake.sh ...                    # let a running test finish first
 #   echo vllm:qwen3.8-27b-fp8:1 > run/bake.final     # or decide the final model later
+#   echo llama:glm-5.3-flash >> run/bake.next        # add an item to run next, while the queue runs
+#   echo llama:seed-oss-36b >> run/bake.later        # or one to run after the rest
 #
 # Progress goes to logs/bake.log, each model's run to logs/bench-<profile>.log and the
 # results to run/results.jsonl. run/bake.state names the model being measured, for the
-# control page. A model that fails to download or start is logged and skipped.
+# control page. A download is tried three times; a model that still fails to download, or
+# fails to start, is logged and skipped.
 set -uo pipefail
 . "$(dirname "$0")/common.sh"
 load_env
@@ -75,28 +78,46 @@ if [ -n "${AFTER:-}" ]; then
     while kill -0 "$AFTER" 2>/dev/null; do sleep 30; done
 fi
 
+take() {  # file: its non-empty lines into $got, and the file removed
+    got=()
+    [ -s "$1" ] || return 1
+    mapfile -t got < <(grep -v '^[[:space:]]*$' "$1")
+    rm -f "$1"
+    [ "${#got[@]}" -gt 0 ]
+}
+
+items=("$@")
 n=0
-for item in "$@"; do
+while :; do
+    if take "$RUN_DIR/bake.next"; then items=("${items[@]:0:n}" "${got[@]}" "${items[@]:n}"); log "added next: ${got[*]}"; fi
+    if take "$RUN_DIR/bake.later"; then items+=("${got[@]}"); log "added at the end: ${got[*]}"; fi
+    [ "$n" -lt "${#items[@]}" ] || break
+    item=${items[$n]}
     n=$((n + 1))
+    of="$n/${#items[@]}"
     IFS=: read -r backend key long <<< "$item"
     long=${long:-0}
     case "$backend" in vllm|llama) ;; *) warn "skipping $item: backend must be vllm or llama"; continue ;; esac
     [ -f "$(profile_file "$backend" "$key")" ] || { warn "skipping $item: no profile"; continue; }
-    echo "$item $n/$# $(date +%s) $$" > "$STATE"
+    echo "$item $of $(date +%s) $$" > "$STATE"
 
-    log "[$n/$#] $item: download"
-    if [ "$backend" = vllm ]; then "$ROOT/spark/vllm.sh" pull "$key"; else "$ROOT/spark/pull-model.sh" "$key"; fi \
-        || { warn "$item: download failed, skipping"; continue; }
+    log "[$of] $item: download"
+    pulled=0
+    for try in 1 2 3; do   # the line is busy with other downloads, and a check can time out
+        if [ "$backend" = vllm ]; then "$ROOT/spark/vllm.sh" pull "$key"; else "$ROOT/spark/pull-model.sh" "$key"; fi && { pulled=1; break; }
+        [ "$try" = 3 ] || { warn "$item: download attempt $try did not work; trying again in a minute"; sleep 60; }
+    done
+    [ "$pulled" = 1 ] || { warn "$item: download failed, skipping"; continue; }
 
     prepare=$(field "$backend" "$key" PREPARE)
     if [ -n "$prepare" ]; then   # a step that needs the memory to itself, such as repacking weights
-        log "[$n/$#] $item: stopping the server to run $prepare"
+        log "[$of] $item: stopping the server to run $prepare"
         systemctl --user stop vllm.service llama-server.service 2>/dev/null || true
         # shellcheck disable=SC2086
         "$ROOT"/$prepare > "$LOG_DIR/bake-$key-prepare.log" 2>&1 || { warn "$item: $prepare failed, skipping"; continue; }
     fi
 
-    log "[$n/$#] $item: start"
+    log "[$of] $item: start"
     if ! serve "$backend" "$key" "$long"; then
         warn "$item: did not start; the last lines of its log are in $LOG_DIR/bake-$key-start.log"
         if [ "$backend" = vllm ]; then cp "$LOG_DIR/vllm-start.log" "$LOG_DIR/bake-$key-start.log" 2>/dev/null
@@ -107,7 +128,7 @@ for item in "$@"; do
         journalctl --user -u llama-server.service -n 400 --no-pager -o cat 2>/dev/null |
             grep -i -E "n_ctx|fit|KV buffer|compute buffer|model buffer|failed" | tail -20 > "$LOG_DIR/bake-$key-start.log"
     fi
-    log "[$n/$#] $item: serving, $(mem_available_gb) GB of memory left; measuring (log: logs/bench-$key.log)"
+    log "[$of] $item: serving, $(mem_available_gb) GB of memory left; measuring (log: logs/bench-$key.log)"
     if [ "$(field "$backend" "$key" KIND)" = decision ]; then   # writes no text: the checker version of the test
         python3 -I -u "$ROOT/scripts/clef-test.py" --base-url "http://127.0.0.1:$PORT" --api-key "${API_KEY:-local}" \
             --model "$(field "$backend" "$key" ALIAS)" --label "$key" --title "$(field "$backend" "$key" TITLE)" \
@@ -117,7 +138,7 @@ for item in "$@"; do
             --label "$key" --title "$(field "$backend" "$key" TITLE)" --detail "$(field "$backend" "$key" DETAIL)" \
             --note "$(note_for "$backend" "$key" "$long")" > "$LOG_DIR/bench-$key.log" 2>&1
     fi
-    log "[$n/$#] $item: $(tail -n 1 "$LOG_DIR/bench-$key.log")"
+    log "[$of] $item: $(tail -n 1 "$LOG_DIR/bench-$key.log")"
 done
 
 # run/bake.final, when present, names the model to serve afterwards and wins over FINAL,

@@ -14,7 +14,9 @@ keys=("$@"); [ "${#keys[@]}" -gt 0 ] || keys=("$MODEL")
 
 for key in "${keys[@]}"; do
     load_model "$key"
-    code=$(curl -s -o /dev/null -w '%{http_code}' "https://huggingface.co/api/models/$HF_REPO")
+    # Under set -e a failed curl would end the script without a word, so say what happened.
+    code=$(curl -s --retry 3 --retry-delay 10 --retry-all-errors -o /dev/null -w '%{http_code}' "https://huggingface.co/api/models/$HF_REPO") || true
+    [ "$code" != 000 ] || die "could not reach huggingface.co to check $HF_REPO"
     [ "$code" = 200 ] || die "HF repo $HF_REPO returned HTTP $code; fix HF_REPO in config/models/$key.env (browse https://huggingface.co/$HF_REPO)"
 
     # size of what we are about to fetch, from the repo tree listing

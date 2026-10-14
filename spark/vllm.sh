@@ -52,7 +52,9 @@ case "$cmd" in
             exec "$ROOT"/$PULL
         fi
         command -v hf >/dev/null || die "hf CLI missing; run spark/bootstrap.sh"
-        code=$(curl -s -o /dev/null -w '%{http_code}' "https://huggingface.co/api/models/$HF_REPO")
+        # Under set -e a failed curl would end the script without a word, so say what happened.
+        code=$(curl -s --retry 3 --retry-delay 10 --retry-all-errors -o /dev/null -w '%{http_code}' "https://huggingface.co/api/models/$HF_REPO") || true
+        [ "$code" != 000 ] || die "could not reach huggingface.co to check $HF_REPO"
         [ "$code" = 200 ] || die "HF repo $HF_REPO returned HTTP $code; fix HF_REPO in config/vllm/$PROFILE_KEY.env"
         mkdir -p "$HF_CACHE"
         log "pulling $HF_REPO into $HF_CACHE (cache layout, used by the container)"
