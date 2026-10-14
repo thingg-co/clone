@@ -161,6 +161,67 @@
    "date": "2026-10-14"
   },
   {
+   "label": "deepseek-v4-flash-reap150",
+   "title": "DeepSeek V4 Flash, REAP 150B",
+   "detail": "150B of 284B kept, 13B active, FP4 experts, 85 GB",
+   "note": "llama.cpp, 16-bit cache, reasoning effort max",
+   "model": "deepseek-v4-flash-reap150",
+   "window": 1048576,
+   "decode_tps": 15.9,
+   "prefill_tps": 462,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 61494,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 133,
+     "finish": "tool_calls",
+     "written": 154
+    },
+    {
+     "tokens": 254778,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 596,
+     "finish": "tool_calls",
+     "written": 162
+    },
+    {
+     "tokens": 501486,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 1239,
+     "finish": "tool_calls",
+     "written": 383
+    },
+    {
+     "tokens": 750768,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 1759,
+     "finish": "tool_calls",
+     "written": 235
+    },
+    {
+     "tokens": 985452,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 2133,
+     "finish": "tool_calls",
+     "written": 273
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
    "label": "qwen3.8-27b",
    "title": "Qwen3.8-27B, 16-bit cache",
    "detail": "dense 27B, NVFP4, 22 GB",

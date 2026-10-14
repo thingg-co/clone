@@ -67,14 +67,15 @@ has it:
 | 1 | DeepSeek V4 Flash (284B, 13B active, 3-bit GGUF, 104 GB) | 857k, llama.cpp, 16-bit cache, reasoning effort max | 805k | 61k 3/3, 255k 3/3, 501k 3/3, 805k 3/3 | yes | 19 tok/s | 325 tok/s |
 | 2 | DeepSeek V4 Flash, 2-bit (284B, 13B active, 2-bit GGUF, 97 GB) | 1.05M, llama.cpp, 16-bit cache, reasoning effort max | 501k | 61k 3/3, 255k 3/3, 501k 3/3, 751k 2/3, 985k 3/3 | yes | 20 tok/s | 320 tok/s |
 | 3 | Qwen3.8-27B, FP8 cache (dense 27B, NVFP4, 22 GB) | 1.01M, vLLM, stretched from 256k, FP8 cache | 519k | 93k 3/3, 253k 3/3, 519k 3/3, 986k 2/3 | yes | 12 tok/s | 918 tok/s |
-| 4 | Qwen3.8-27B, 16-bit cache (dense 27B, NVFP4, 22 GB) | 950k, stretched from 256k, 16-bit cache | 507k | 97k 3/3, 245k 3/3, 507k 3/3 | yes | 12 tok/s | 920 tok/s |
-| 5 | Qwen3.5-122B-A10B, FP8 cache (122B, 10B active, NVFP4, 84 GB) | 1.01M, vLLM, stretched from 256k, FP8 cache | 519k | 93k 3/3, 253k 3/3, 519k 3/3, 760k 1/3, 960k 0/3 | yes | 14 tok/s | 1,030 tok/s |
-| 6 | Qwen3.5-122B-A10B (122B, 10B active, NVFP4, 84 GB) | 500k, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 492k 2/3 | yes | 14 tok/s | 1,042 tok/s |
-| 7 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
-| 8 | Qwen3.6-35B-A3B (35B, 3B active, NVFP4, 23 GB) | 1.01M, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 519k 2/3, 1M 1/3 | yes | 77 tok/s | 2,897 tok/s |
-| 9 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
-| 10 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
-| 11 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
+| 4 | DeepSeek V4 Flash, REAP 150B (150B of 284B kept, 13B active, FP4 experts, 85 GB) | 1.05M, llama.cpp, 16-bit cache, reasoning effort max | 501k | 61k 3/3, 255k 3/3, 501k 3/3, 751k 2/3, 985k 2/3 | yes | 16 tok/s | 462 tok/s |
+| 5 | Qwen3.8-27B, 16-bit cache (dense 27B, NVFP4, 22 GB) | 950k, stretched from 256k, 16-bit cache | 507k | 97k 3/3, 245k 3/3, 507k 3/3 | yes | 12 tok/s | 920 tok/s |
+| 6 | Qwen3.5-122B-A10B, FP8 cache (122B, 10B active, NVFP4, 84 GB) | 1.01M, vLLM, stretched from 256k, FP8 cache | 519k | 93k 3/3, 253k 3/3, 519k 3/3, 760k 1/3, 960k 0/3 | yes | 14 tok/s | 1,030 tok/s |
+| 7 | Qwen3.5-122B-A10B (122B, 10B active, NVFP4, 84 GB) | 500k, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 492k 2/3 | yes | 14 tok/s | 1,042 tok/s |
+| 8 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
+| 9 | Qwen3.6-35B-A3B (35B, 3B active, NVFP4, 23 GB) | 1.01M, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 519k 2/3, 1M 1/3 | yes | 77 tok/s | 2,897 tok/s |
+| 10 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
+| 11 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
+| 12 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
 <!-- results:end -->
 
 How they fail matters as much as where. The Nemotron models return a code
@@ -126,10 +127,15 @@ downloads were holding memory, so it runs again near 1M once they finish.
 
 The 2-bit build, also at max, had room for the full 1,048,576 tokens. It got
 all three codes at 61k, 255k, 501k and 985k, and 985k is the largest prompt
-any model here has answered exactly. At 751k it gave 455645 for locker
-20909, whose code is 556654. It quoted the record with the wrong number, said
-it would check, and quoted it the same way again. So it is exact to 501k by
-the ranking's rule, and the 3-bit build stays ahead.
+any model here has answered exactly. At 751k it gave locker 20999's code for
+locker 20909. It quoted record 20909 with that code, said it would check, and
+quoted it the same way again. So it is exact to 501k by the ranking's rule,
+and the 3-bit build stays ahead.
+
+Pruned to 150B with DeepSeek's own FP4 experts, it also had room for the full
+window, decoded at 16 tok/s and read 460 tok/s. It was exact to 501k and got
+two of three at 751k and at 985k. Both wrong codes came from far off in the
+prompt: locker 12503's for locker 20909, and locker 11427's for locker 27428.
 
 Long prompts cost time. Flash-Next reads about 2,500 tok/s, so a cold 500k
 prompt takes under four minutes. The dense 27B reads 900 tok/s for the first
@@ -296,7 +302,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.14.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.15.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -452,7 +458,7 @@ licenses.
   precision (950k tokens) has no headroom over a prompt that fills the
   window, so that profile stops at 900k, and its 900k step is queued.
 - Running the bake-off: DeepSeek V4 Flash (2-bit with its DSpark draft,
-  pruned to 150B and to 200B, and 0xSero's single-Spark build),
+  pruned to 200B, and 0xSero's single-Spark build),
   Nemotron Puzzle 75B, GLM-5.3-Flash (2-bit, and
   pruned at 4-bit), MiMo-V2.6-Flash pruned, Kimi Linear, Seed-OSS-36B,
   Nemotron-Cascade-2, dots3-note and K2-Horizon MoVA are queued on the Spark,
