@@ -56,6 +56,67 @@
    "date": "2026-10-14"
   },
   {
+   "label": "deepseek-v4-flash-q2",
+   "title": "DeepSeek V4 Flash, 2-bit",
+   "detail": "284B, 13B active, 2-bit GGUF, 97 GB",
+   "note": "llama.cpp, 16-bit cache, reasoning effort max",
+   "model": "deepseek-v4-flash-q2",
+   "window": 1048576,
+   "decode_tps": 19.9,
+   "prefill_tps": 320,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 61494,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 192,
+     "finish": "tool_calls",
+     "written": 171
+    },
+    {
+     "tokens": 254778,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 795,
+     "finish": "tool_calls",
+     "written": 236
+    },
+    {
+     "tokens": 501486,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 1522,
+     "finish": "tool_calls",
+     "written": 806
+    },
+    {
+     "tokens": 750768,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 2013,
+     "finish": "tool_calls",
+     "written": 229
+    },
+    {
+     "tokens": 985452,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 2497,
+     "finish": "tool_calls",
+     "written": 1456
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
    "label": "qwen3.8-27b-fp8",
    "title": "Qwen3.8-27B, FP8 cache",
    "detail": "dense 27B, NVFP4, 22 GB",
