@@ -192,6 +192,8 @@ PY
 [Unit]
 Description=vLLM main (clone)
 After=network-online.target docker.service
+StartLimitIntervalSec=600
+StartLimitBurst=3
 
 [Service]
 Type=simple
@@ -202,6 +204,8 @@ ExecStart=/usr/bin/env bash $ROOT/spark/vllm.sh serve
 ExecStop=/usr/bin/docker stop $NAME
 Restart=on-failure
 RestartSec=10
+# No restart after an OOM kill (137 from docker, SIGKILL otherwise): it would run out again.
+RestartPreventExitStatus=137 SIGKILL
 TimeoutStopSec=90
 
 [Install]

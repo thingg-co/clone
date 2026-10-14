@@ -3,6 +3,9 @@
 [Unit]
 Description=llama-server main (clone)
 After=network-online.target
+# At most three starts in ten minutes, so a profile that cannot start does not loop.
+StartLimitIntervalSec=600
+StartLimitBurst=3
 
 [Service]
 Type=simple
@@ -10,6 +13,9 @@ WorkingDirectory=@ROOT@
 ExecStart=/usr/bin/env bash @ROOT@/spark/serve.sh main
 Restart=on-failure
 RestartSec=5
+# No restart after the kernel's OOM killer (SIGKILL): the same start runs out of memory
+# again, and on the Spark's shared memory each time can stall the whole machine.
+RestartPreventExitStatus=SIGKILL
 KillSignal=SIGINT
 TimeoutStopSec=60
 Environment=PATH=/usr/local/cuda/bin:/usr/local/bin:/usr/bin:/bin
