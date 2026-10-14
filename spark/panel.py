@@ -486,12 +486,15 @@ def results(published: Path | None = None, runs: Path | None = None) -> dict:
         except ValueError:
             continue
         if isinstance(m, dict) and m.get("kind") == "bench" and m.get("label"):
-            by_label[m["label"]] = m
+            if m.get("recall"):  # a run that measured no prompt size does not replace one that did
+                by_label[m["label"]] = m
         elif isinstance(m, dict) and m.get("kind") == "checker" and m.get("label"):  # decision models, scripts/clef-test.py
             checkers[m["label"]] = m
     models = []
     for m in by_label.values():
         rec = [r for r in m.get("recall") or [] if isinstance(r, dict)]
+        if not rec:
+            continue
         right, of = sum(r.get("right", 0) for r in rec), sum(r.get("of", 0) for r in rec)
         models.append({**m, "recall": sorted(rec, key=lambda r: r.get("tokens", 0)), "reach": reach(rec), "near": reach(rec, 1),
                        "right": right, "of": of})

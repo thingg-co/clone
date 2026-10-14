@@ -199,7 +199,7 @@ llama.cpp profiles in `config/models/`:
 | `nemotron-cascade-2` | Nemotron-Cascade-2, 30B with 3B active, 8-bit | 1M; the largest that fits |
 | `kimi-linear-48b` | Kimi Linear 48B with 3B active, 8-bit, no thinking mode | trained to 1M; the largest that fits |
 | `seed-oss-36b` | Seed-OSS-36B, dense, 8-bit weights and cache | trained to 512k; the largest that fits |
-| `clef`, `clef-flash` | Cloudflare's decision models: typed answers at `/v1/systemone`, no text | passages up to 128k |
+| `clef`, `clef-flash` | Cloudflare's decision models: typed answers at `/v1/systemone`, no text | passages up to 64k |
 | `gpt-oss-120b`, `gpt-oss-20b` | OpenAI's open models | 128k |
 
 `CTX=fit` in a llama.cpp profile leaves the window to llama.cpp: it starts
@@ -322,7 +322,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.17.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.18.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -496,7 +496,9 @@ licenses.
   27B one is good at spotting claims a passage does not support, which is the
   failure that matters here. `scripts/clef-test.py` asks it to pick each code
   out of eight that include the neighbouring records' codes, and to judge
-  true claims and off-by-one ones.
+  true claims and off-by-one ones. The whole passage goes through in one
+  batch, and the attention mask for a batch grows with its square, so the
+  profiles stop at 64k.
 - More than one answer per size for the leaders. The bake-off asks once at
   temperature 0. `context-test.py --samples K` asks again at the server's own
   sampling, which costs only the answer once the prompt is cached.

@@ -123,6 +123,8 @@ def ladder(window) -> list:
     if not window:
         return [100]
     top = (window - 8000 - 32768) // 1000
+    if top < 16:  # no room for a prompt worth the name
+        return []
     sizes = [s for s in (100, 250, 500, 750, 1000) if s <= top]
     if not sizes or top > sizes[-1] * 1.05:
         sizes.append(top)
@@ -183,10 +185,15 @@ def main() -> int:
         record["recall"] = [step(r) for r in rows if r.get("label") == args.label]
     else:
         sizes = [int(s) for s in args.sizes.split(",")] if args.sizes else ladder(window)
+        if not sizes:
+            print(f"a window of {window} leaves no room for the recall test; nothing recorded", flush=True)
+            return 3
         record["recall"] = recall(args, model, sizes)
-    if record["recall"]:
-        first = record["recall"][0]
-        record["prefill_tps"] = round(first["tokens"] / max(1, first["seconds"]))
+    if not record["recall"]:  # the test ran no size at all, which says nothing about the model
+        print("the recall test returned no result; nothing recorded", flush=True)
+        return 3
+    first = record["recall"][0]
+    record["prefill_tps"] = round(first["tokens"] / max(1, first["seconds"]))
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("a", encoding="utf-8") as fh:

@@ -54,7 +54,7 @@ def main() -> int:
     ap.add_argument("--label", default="clef")
     ap.add_argument("--title", default="")
     ap.add_argument("--detail", default="")
-    ap.add_argument("--sizes", default="4,16,64,120", help="record text sizes in thousands of tokens")
+    ap.add_argument("--sizes", default="4,16,56", help="record text sizes in thousands of tokens; the profiles take 64k")
     ap.add_argument("--timeout", type=int, default=3600)
     ap.add_argument("--out", default=str(HERE.parent / "run" / "results.jsonl"))
     args = ap.parse_args()
