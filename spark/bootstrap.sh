@@ -63,7 +63,11 @@ if [ "$BACKEND" = vllm ]; then VLLM_PROFILE="${VLLM_PROFILE:-qwen3.8-27b}" "$ROO
 
 systemctl --user restart clone-panel.service && log "control page on http://$(hostname).local:${PANEL_PORT:-8088} (make panel on the Mac)"
 
-# 6. agent venv on the Spark (optional)
+# 6. the clone command: fable in whatever directory you are in, pointed at this server
+mkdir -p "$HOME/.local/bin"
+ln -sfn "$ROOT/bin/clone" "$HOME/.local/bin/clone" && log "clone command linked into ~/.local/bin: cd into a project and run clone"
+
+# 7. agent venv on the Spark (optional; clone creates it on first use too)
 if [ "$do_agent" = 1 ]; then
     (cd "$ROOT/agent" && uv sync --quiet) && log "agent ready: $ROOT/agent/.venv/bin/fable"
 fi

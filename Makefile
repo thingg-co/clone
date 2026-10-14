@@ -6,7 +6,7 @@ BACKEND ?= vllm
 MODEL ?= gpt-oss-120b
 ARGS ?=
 
-.PHONY: help config deploy bootstrap ssh status start stop restart logs switch vllm-switch pull bench tunnel panel smoke agent-install agent doctor test
+.PHONY: help config deploy bootstrap ssh status start stop restart logs switch vllm-switch pull bench tunnel panel smoke agent-install agent clone-command doctor test
 
 help: ## this list
 	@grep -hE '^[a-z -]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -63,6 +63,10 @@ agent-install: ## create the agent's venv
 
 agent: ## run the agent (through the tunnel, or set FABLE_BASE_URL)
 	cd agent && uv run fable
+
+clone-command: ## link bin/clone into ~/.local/bin: then `clone` in any directory starts the agent there
+	mkdir -p $(HOME)/.local/bin && ln -sfn $(CURDIR)/bin/clone $(HOME)/.local/bin/clone
+	@echo "clone is in ~/.local/bin; cd into a project and run clone"
 
 doctor: ## check the server from the agent's point of view
 	cd agent && uv run fable --doctor

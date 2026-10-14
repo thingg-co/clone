@@ -134,6 +134,7 @@ pre.log { max-height: 320px; overflow-y: auto; white-space: pre-wrap; overflow-w
       <button data-act="smoke">Test tool calling</button>
     </div>
     <p class="note" id="connect-note"></p>
+    <p class="note">On the Spark itself there is a shorter way: <code>ssh omega.local</code>, <code>cd</code> into a project and run <code>clone</code> (or run it in your home folder to pick from ~/Development, or paste a git URL there to clone a new one). It runs inside tmux, so the agent keeps working if the connection drops; <code>clone</code> in the same folder picks it up again. <code>make clone-command</code> sets up the same command on a Mac, against this server.</p>
     <p class="note">Both commands run on any machine that can reach the Spark by the name chosen above. fable needs <code>uv</code> there and installs itself from this page; add <code>--doctor</code> to check the connection first. Claude Code needs the server to answer on /v1/messages; the first test checks that. The commands contain the API key.</p>
   </section>
 

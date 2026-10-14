@@ -179,6 +179,7 @@ Three ways to serve, one port:
     scripts/context-test.py    recall across the window through a tool call; the acceptance test
     scripts/bench.py           speed, thinking, tool loop and the recall test, one JSON line per model
     scripts/results.py         rank the results; --publish writes docs/results.json and the tables
+    bin/clone                  fable in the current directory, pointed at the server; tmux over SSH
     agent/                     fable, the agent (see agent/README.md)
     docs/                      the project page, served by GitHub Pages
     claude-code/               run Claude Code against the Spark
@@ -229,6 +230,40 @@ this:
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
+
+## The clone command
+
+`bin/clone` starts fable in the current directory, already pointed at the
+model server. `spark/bootstrap.sh` links it into `~/.local/bin` on the Spark,
+and `make clone-command` does the same on a Mac, where it talks to the Spark
+over the network:
+
+    ssh omega.local
+    cd ~/Development/steel
+    clone                             # or clone -c to resume the last session here
+
+Run in your home folder, it lists `~/Development`, most recently changed
+first, and starts in the one you pick. Paste a git URL at that prompt, or run
+`clone <git url>` anywhere, and it clones the repository into `~/Development`
+first (or opens the folder if it is already there). Over SSH it runs inside tmux, one
+session per directory, so a dropped connection or a closed laptop leaves the
+agent working; `clone` in the same folder attaches to it again, and Ctrl-b d
+leaves it running on purpose. Quitting the agent leaves a shell in the
+project. Any fable option passes through (`clone --effort max`, `clone
+--doctor`). `CLONE_TMUX=0` turns tmux off.
+
+On the Spark the agent works on the Spark's copy of a project, so a project
+has to be cloned or synced there first. To make plain `ssh fable` land in
+the list, add this to `~/.ssh/config` on the Mac:
+
+    Host fable
+        HostName omega.local
+        RequestTTY yes
+        ForwardAgent yes
+        RemoteCommand bash -lc clone
+
+ForwardAgent lets git inside the session push with the Mac's keys; the
+session keeps a stable link to whichever connection is current.
 
 ## Control page
 

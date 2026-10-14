@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# clone: start the agent in the current directory, already pointed at the model server.
+#
+#   clone                  # fable here; in your home folder it offers ~/Development first
+#   clone -c               # resume the last session here; any fable option works (clone --help)
+#   clone <git url>        # clone the repository into ~/Development and start in it
+#
+# `make clone-command` (Mac) and spark/bootstrap.sh (Spark) link this file into
+# ~/.local/bin. On the Spark it talks to the server on localhost, elsewhere to SPARK_HOST
+# from config/spark.env; FABLE_BASE_URL and FABLE_API_KEY override both.
+#
+# Over SSH it runs inside tmux, one session per directory, so a dropped connection leaves
+# the agent working. Running clone in the same directory again attaches to that session.
+# Quitting the agent leaves a shell there; exit it to close the session. CLONE_TMUX=0
+# turns tmux off, CLONE_PROJECTS changes the folder the list and new clones go in.
+set -euo pipefail
+
+self=$0
+while [ -L "$self" ]; do   # follow the ~/.local/bin link back into the tree (no readlink -f on older macOS)
+    link=$(readlink "$self")
+    case "$link" in /*) self=$link ;; *) self=$(dirname "$self")/$link ;; esac
+done
+ROOT=$(cd "$(dirname "$self")/.." && pwd)
+self=$ROOT/bin/clone
+
+if [ -f "$ROOT/config/spark.env" ]; then
+    set -a; . "$ROOT/config/spark.env"; set +a
+fi
+PORT=${PORT:-8080}
+if [ -d "$ROOT/.tools" ]; then   # on the Spark the tools, caches and Python live in the tree
+    export PATH="$ROOT/.tools/bin:$PATH" UV_CACHE_DIR="$ROOT/.tools/uv-cache" UV_PYTHON_INSTALL_DIR="$ROOT/.tools/python"
+fi
+
+session_for() {  # tmux session name for a directory: its name, made unique if another one has it
+    local name path
+    name=$(basename "$1"); name=${name//[^A-Za-z0-9_-]/_}
+    path=$(tmux -L clone display-message -p -t "=$name" '#{session_path}' 2>/dev/null || true)
+    if [ -n "$path" ] && [ "$path" != "$1" ]; then
+        name="$name-$(printf '%s' "$1" | cksum | cut -c1-4)"
+    fi
+    printf '%s' "$name"
+}
+
+PROJECTS=${CLONE_PROJECTS:-$HOME/Development}
+
+is_git_url() { [[ "$1" =~ ^(git@|ssh://|https?://|git://).+ ]] || [[ "$1" =~ \.git/?$ ]]; }
+
+clone_repo() {  # git clone a URL into the projects folder, or reuse the folder if it is there, and cd into it
+    local name=${1%/}
+    name=${name##*/}; name=${name##*:}; name=${name%.git}
+    [ -n "$name" ] || { echo "cannot tell a folder name from $1" >&2; return 1; }
+    mkdir -p "$PROJECTS"
+    if [ -d "$PROJECTS/$name" ]; then
+        echo "$PROJECTS/$name is already there; starting in it"
+    else
+        # first contact with a git host: remember its key instead of stopping to ask
+        GIT_SSH_COMMAND=${GIT_SSH_COMMAND:-ssh -o StrictHostKeyChecking=accept-new} git clone "$1" "$PROJECTS/$name" || return 1
+    fi
+    cd "$PROJECTS/$name"
+}
+
+pick_project() {  # list the projects, most recently changed first, and cd into the one chosen
+    local dir=$PROJECTS names=() name choice i=0
+    if [ -d "$dir" ]; then
+        while IFS= read -r name; do names+=("${name%/}"); done < <(cd "$dir" && ls -1dt -- */ 2>/dev/null)
+    fi
+    if [ "${#names[@]}" -eq 0 ]; then
+        printf 'No projects in %s yet.\n' "$dir"
+    else
+        printf 'Projects in %s:\n' "$dir"
+    fi
+    for name in ${names[@]+"${names[@]}"}; do
+        i=$((i + 1))
+        if [ -n "${SSH_CONNECTION:-}" ] && tmux -L clone has-session -t "=$(session_for "$dir/$name")" 2>/dev/null; then
+            printf '  %2d  %s  (running)\n' "$i" "$name"
+        else
+            printf '  %2d  %s\n' "$i" "$name"
+        fi
+    done
+    read -r -p "Number, a git URL to clone, or Enter to stay here: " choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#names[@]}" ]; then
+        cd "$dir/${names[$((choice - 1))]}"
+    elif [ -n "$choice" ] && is_git_url "$choice"; then
+        clone_repo "$choice" || exit 1
+    elif [ -n "$choice" ]; then
+        echo "$choice is not on the list or a git URL; staying here"
+    fi
+}
+
+if [ -z "${TMUX:-}" ] && [ "$#" -ge 1 ] && is_git_url "$1"; then
+    clone_repo "$1" || exit 1
+    shift
+elif [ -z "${TMUX:-}" ] && [ "$#" -eq 0 ] && [ "$PWD" = "$HOME" ] && [ -t 0 ]; then
+    pick_project
+fi
+
+if [ -z "${TMUX:-}" ] && [ -n "${SSH_CONNECTION:-}" ] && [ "${CLONE_TMUX:-1}" != 0 ] && [ -t 0 ] && command -v tmux >/dev/null; then
+    # git inside a long-lived session should use the keys of whichever connection is current
+    if [ -n "${SSH_AUTH_SOCK:-}" ] && [ -d "$HOME/.ssh" ]; then
+        ln -sfn "$SSH_AUTH_SOCK" "$HOME/.ssh/clone-agent.sock" && SSH_AUTH_SOCK=$HOME/.ssh/clone-agent.sock
+    fi
+    s=$(session_for "$PWD")
+    exec tmux -L clone -f "$ROOT/spark/tmux.conf" new-session -A -s "$s" -n fable -c "$PWD" -e "SSH_AUTH_SOCK=${SSH_AUTH_SOCK:-}" \
+        "$(printf '%q ' "$self" "$@"); exec \$SHELL -l"
+fi
+
+if [ -z "${FABLE_BASE_URL:-}" ]; then
+    if curl -s -m 2 -o /dev/null "http://127.0.0.1:$PORT/v1/models" 2>/dev/null; then
+        FABLE_BASE_URL=http://127.0.0.1:$PORT/v1    # on the Spark, or through make tunnel
+    else
+        FABLE_BASE_URL=http://${SPARK_HOST:-omega.local}:$PORT/v1
+    fi
+fi
+export FABLE_BASE_URL FABLE_API_KEY=${FABLE_API_KEY:-${API_KEY:-local}}
+exec uv run --quiet --project "$ROOT/agent" fable "$@"
