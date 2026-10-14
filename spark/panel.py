@@ -78,10 +78,21 @@ def to_int(v, default=None):
 
 
 def hf_complete(repo_dir: Path) -> bool:
-    """A snapshot with weights in it and no download still in flight."""
-    if any((repo_dir / "blobs").glob("*.incomplete")):  # in flight, or cancelled part way
-        return False
-    return any(repo_dir.glob("snapshots/*/config.json")) and any(repo_dir.glob("snapshots/*/*.safetensors"))
+    """A snapshot with its config and every weight file its index names. The cache links a file
+    into the snapshot only once it is whole, so a pull still running leaves some missing. Part-files
+    decide nothing: a cancelled pull leaves them behind even after a later one finished."""
+    for snap in repo_dir.glob("snapshots/*"):
+        if not (snap / "config.json").exists():
+            continue
+        index = snap / "model.safetensors.index.json"
+        try:
+            shards = set(json.loads(index.read_text())["weight_map"].values()) if index.exists() else set()
+        except (OSError, ValueError, KeyError, AttributeError):
+            continue
+        files = [snap / s for s in shards] or list(snap.glob("*.safetensors"))
+        if files and all(f.exists() for f in files):   # exists() follows the link to the blob
+            return True
+    return False
 
 
 # ---- fable, handed out as an installable archive ------------------------------

@@ -40,6 +40,9 @@ asks for three of the codes, one near the start, one in the middle and one
 near the end, and wants them back through a tool call. A size passes when the
 call is made and all three codes are right. Thousands of nearly identical
 lines make it a harsh test. It is also the property a long window is for.
+Each answer gets 32,768 tokens, thinking included, which is what fable
+allows. Until 14 October it was 4,000, which cut DeepSeek off mid-thought
+once; the models measured before then are queued again at the new budget.
 
 `scripts/bench.py` wraps it. It measures decode speed on a short prompt,
 checks that the model thinks, calls a tool and uses the result, and then runs
@@ -168,7 +171,15 @@ llama.cpp profiles in `config/models/`:
 `CTX=fit` in a llama.cpp profile leaves the window to llama.cpp: it starts
 from the window the model was trained for and shrinks it until weights and
 cache fit, keeping `FIT_MARGIN_MB` free for the rest of the machine. The
-window it settled on is in the server log and on the control page.
+window it settled on is in the server log and on the control page. It
+depends on what else holds memory at the time: the 3-bit DeepSeek got 991k
+with nothing else running and 857k while a download held about 3 GB.
+
+`TEMPLATE_KWARGS` in a llama.cpp profile passes values to the model's chat
+template, for every request that does not set them itself. The DeepSeek
+profiles set `reasoning_effort` to max and gpt-oss to high, the deepest each
+template knows. Most other templates already default to their deepest
+setting or only switch thinking on and off.
 
 When vLLM refuses a window because the cache cannot hold it, it says what
 would fit. The launchers take 97% of that figure, write it to
@@ -176,7 +187,7 @@ would fit. The launchers take 97% of that figure, write it to
 with it, and later starts go straight there. Delete the file to have the full
 window tried again.
 
-Three ways to serve, one port:
+Four ways to serve, one port:
 
 - vLLM in NVIDIA's DGX Spark container (`spark/vllm.sh`). Proper tool-call
   and reasoning parsers, prefix caching, and an Anthropic-style
@@ -254,8 +265,8 @@ container image (37 GB) and the weights of the profile in `config/spark.env`
 (22 GB for Qwen3.8-27B, 133 GB for Flash-Next), installs systemd user units,
 starts them, waits for the health check and runs the smoke test. Nothing
 needs sudo; linger is already on, so the services outlive the SSH session.
-Rerunning it is safe. On Wi-Fi the downloads are the slow part: this Spark
-managed about 30 MB/s on a 2.4 GHz network, and a cable is worth finding.
+Rerunning it is safe. The downloads are the slow part: this Spark gets 20 to
+30 MB/s from Hugging Face, so a 100 GB model takes an hour or more.
 
 Back on the Mac:
 
@@ -276,7 +287,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.12.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.13.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -353,7 +364,7 @@ Spark has none. `make vllm-switch` changes both.
     make logs                         # follow the main server
     make restart | stop | start
     make smoke                        # tool-calling check through the tunnel
-    make switch MODEL=glm-4.5-air     # llama.cpp backend: change profile and restart
+    make switch MODEL=deepseek-v4-flash   # llama.cpp backend: change profile and restart
     make test                         # agent unit tests
 
 vLLM profile changes go through one target, which edits `config/spark.env`
@@ -405,7 +416,9 @@ instructions of your own that should travel with the agent. They are modeled on 
 `claude-code/README.md`. Short version: `source claude-code/env.sh && claude`
 when the server has `/v1/messages` (vLLM does), or run the LiteLLM proxy from
 `claude-code/litellm.yaml` when it does not. The control page prints the same
-variables as one command to copy.
+variables as one command to copy. The servers default to each model's deepest
+reasoning setting, so Claude Code gets it without asking; the README there
+says where its own effort setting reaches the model.
 
 ## License
 
@@ -449,6 +462,13 @@ licenses.
   failure that matters here. `scripts/clef-test.py` asks it to pick each code
   out of eight that include the neighbouring records' codes, and to judge
   true claims and off-by-one ones.
+- More than one answer per size for the leaders. The bake-off asks once at
+  temperature 0. `context-test.py --samples K` asks again at the server's own
+  sampling, which costs only the answer once the prompt is cached.
+- Two slots on llama.cpp. With one, a subagent's request pushes the main
+  conversation out of the cache and the next turn reads it all again, about
+  40 minutes at 500k for DeepSeek. `-np 2 --kv-unified` keeps both; vLLM
+  already takes four requests at once.
 - The older llama.cpp profiles (`glm-4.5-air`, `gpt-oss-120b`, `qwen3-235b`)
   have not been run. `pull-model.sh` checks the repo before downloading and
   says which line to fix.

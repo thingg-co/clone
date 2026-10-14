@@ -97,19 +97,19 @@ footer p { margin: 0 0 8px; }
     <div class="parts">
       <div>
         <h3>The model server</h3>
-        <p>vLLM in NVIDIA's container on the Spark, with one profile per model: weights, window, parsers and memory share. When the window asked for does not fit in the cache, the launcher takes the largest one that does and says so.</p>
+        <p>vLLM in NVIDIA's container, or llama.cpp for models whose release weights are larger than the machine, with one profile per model: weights, window, parsers and memory share. When the window asked for does not fit, the launcher takes the largest one that does and says so. Every model runs at its deepest reasoning setting unless a request asks for less.</p>
       </div>
       <div>
         <h3>fable</h3>
-        <p>A terminal agent in Python. Shell, file read, write and edit, search, web fetch, a task list and read-only subagents, behind a permission check. Five thinking levels, translated into whatever each model family calls them.</p>
+        <p>A terminal agent in Python. Shell, file read, write and edit, search, web fetch, a task list and read-only subagents, behind a permission check. Five thinking levels, max by default, translated into whatever each model family calls them.</p>
       </div>
       <div>
         <h3>A control page</h3>
-        <p>Served from the Spark with the standard library. What is running, memory, downloads with a finish time, switching model and window, and the commands that connect Claude Code or fable from another machine.</p>
+        <p>Served from the Spark with the standard library. What is running, memory, downloads with a finish time, switching model and window, the results so far, and the commands that connect Claude Code or fable from another machine.</p>
       </div>
     </div>
     <figure>
-      <img src="panel.png" width="2080" height="1494" alt="The control page: Qwen3.8-Flash-Next serving a 524k-token window, memory use, and the table of model profiles with their windows, parsers and whether the weights are on disk.">
+      <img src="panel.png" width="2080" height="1720" alt="The control page: DeepSeek V4 Flash at 2 bits serving a 1.05M-token window while another model downloads, memory use, and the table of model profiles with their backends, windows, thinking, tool parsers and whether the weights are on disk.">
       <figcaption>The control page on the Spark. Switching profile rewrites the configuration, reinstalls the service and restarts it.</figcaption>
     </figure>
   </section>
@@ -118,7 +118,7 @@ footer p { margin: 0 0 8px; }
     <h2>What was measured</h2>
     <p>A long window is only worth having if the model can still find things in it. The acceptance test fills the prompt with numbered records, thousands of lines like this one:</p>
     <pre>Record 9337: the access code for locker 9337 is 836244.</pre>
-    <p>It then asks for three of the codes, one near the start, one in the middle and one near the end, and wants them back through a tool call. A size passes when the call is made and all three codes are right. It is a harsh test. It is also what a long window is for.</p>
+    <p>It then asks for three of the codes, one near the start, one in the middle and one near the end, and wants them back through a tool call. A size passes when the call is made and all three codes are right. It is a harsh test. It is also what a long window is for. Each answer gets 32,768 tokens for its thinking and the call, which is what fable allows. Until 14 October it was 4,000, and the models measured before then are being measured again.</p>
     <p>Results from the same Spark, all with thinking on, ranked by how far each model stays exact: the largest prompt it answered with all three codes right, with every smaller prompt right as well. Ties go to the largest prompt with at most one code wrong at each size, then to the share of codes right, then to decode speed. Sizes count to the nearest 50k, since the same step comes out a few thousand tokens apart from one tokenizer to the next. Read-in is how fast the first recall prompt was read.</p>
     <div class="tablewrap">
       <table>
@@ -222,12 +222,12 @@ footer p { margin: 0 0 8px; }
       </table>
     </div>
     <p class="small">The same numbers as data: <a href="results.json">results.json</a>. The control page on the Spark shows this table too, with each new run added as it finishes.</p>
-    <p>Every model in the table thinks, calls a tool and finishes the tool loop at the window listed. Recall is where they part ways, and how they fail matters as much as where. The Nemotron models return a code from the wrong part of the prompt. Flash-Next, past the length it was trained for, returns the record next door:</p>
+    <p>Every model in the table calls a tool and finishes the tool loop at the window listed, and all but Laguna think on every request. Recall is where they part ways, and how they fail matters as much as where. The Nemotron models return a code from the wrong part of the prompt. Flash-Next, past the length it was trained for, returns the record next door:</p>
     <blockquote>
       <p>Asked for locker 9337, it answered with the code for locker 9338.</p>
       <p>Asked for locker 137, it answered with the code for locker 37, and quoted the line it believed it had read.</p>
     </blockquote>
-    <p>The Qwen models are trained to 262,144 tokens, and their cards document a way to stretch that. What the stretch does depends on the model. The dense 27B stayed exact at twice its trained length. Flash-Next, which attends sparsely, loses its place. An older model, Qwen3-Coder-Next, stopped calling tools altogether. So a stretched window has to be tested on the model that will use it.</p>
+    <p>The Qwen models are trained to 262,144 tokens, and their cards document a way to stretch that. What the stretch does depends on the model. The dense 27B stayed exact at twice its trained length. The 122B held to twice its trained length too, then got one code of three at three times it and none at nearly four. Flash-Next, which attends sparsely, loses its place. An older model, Qwen3-Coder-Next, stopped calling tools altogether. So a stretched window has to be tested on the model that will use it.</p>
     <p>Where that leaves the three targets: DeepSeek V4 Flash, trained to a million tokens and run here at 3 bits, is the one configuration that has been exact past 600k. Its template tells it to reason at length only when the request asks for an effort of high or max, and the server now asks for max. At max it was exact at 61k, 255k, 501k and 805k, and no answer ran past 600 tokens. At its default effort it was exact to 255k. At 502k it wrote down the wrong code for the middle locker while thinking and never called the tool, even with 32,768 tokens to do it in, and two more tries at that size got one and two of three. The max run had an 857k window, smaller than before because downloads were holding memory, so it runs again near a million when they finish. Qwen3.8-27B is exact to 519k with an FP8 cache, and it is slow. At 986k it got two codes of three: asked for locker 34548, it gave the code for locker 34458 and quoted the line as if it had read it. It took 46 minutes to read that prompt. Qwen3.5-122B-A10B, stretched to a million with an FP8 cache, was exact to 519k, then got one code of three at 760k and none at 960k. Qwen3.6-35B-A3B is the fast one, at 77 tokens a second, and exact to 253k, with two of three at 519k and one at a million. Flash-Next is the model that suits the hardware, at 44 to 49 tokens a second, and it is exact inside 256k. Nothing has been shown exact at a million yet.</p>
     <p>Being measured on the Spark now, with the same test: DeepSeek V4 Flash at 3 bits again, near a million; DeepSeek V4 Flash at 2 bits, with and without its DSpark draft model, with its experts pruned to 150B and to 200B, and in 0xSero's single-Spark build; Nemotron Puzzle 75B, Super cut down and distilled at long context; GLM-5.3-Flash at 2 bits and pruned at 4 bits; MiMo-V2.6-Flash with half its experts; Kimi Linear and Nemotron-Cascade-2, all trained to a million tokens; and Seed-OSS-36B, dots3-note and K2-Horizon MoVA, trained to 512k. After them, the models above are measured again with the same script, so every row is taken the same way. DeepSeek V4 Flash, GLM-5.3-Flash and MiMo-V2.6-Flash are larger than the machine at their release precision and run here either at 2 to 3 bits per weight or with experts pruned, through llama.cpp. The table above fills in as each one finishes.</p>
   </section>

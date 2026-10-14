@@ -28,11 +28,12 @@ they cannot ask about, so pass `-y` when piping.
 
 Thinking: `--effort` (or `/effort` in a session) takes `off`, `low`, `medium`,
 `high` or `max`; the default is `max`. What that does depends on the model.
-A model with a reasoning mode of its own (Qwen3.8, Laguna, Nemotron, gpt-oss)
-thinks natively and the server returns it as `reasoning_content`. Each family
-names its levels differently, so the agent translates: Qwen3.8 gets `xhigh`
-for `high` and `max`, gpt-oss gets `high`, and models that only switch
-thinking on or off get no level at all. If a server still refuses the value,
+A model with a reasoning mode of its own (Qwen3.8, DeepSeek V4, GLM-5,
+Laguna, Nemotron, gpt-oss and others) thinks natively and the server returns
+it as `reasoning_content`. Each family names its levels differently, so the
+agent translates: Qwen3.8 gets `xhigh` for `high` and `max`, DeepSeek V4 and
+GLM-5 get `max`, gpt-oss gets `high`, and models that only switch thinking on
+or off get no level at all. If a server still refuses the value,
 the agent drops it for that model and carries on with the model's default. A
 model without a reasoning mode gets a section in the system prompt that asks
 for a `<think>` block at the start of every response, with instructions that

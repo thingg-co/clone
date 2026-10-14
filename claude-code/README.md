@@ -52,6 +52,12 @@ Edit the `model:` lines in `litellm.yaml` when the served model name changes.
   `medium` and `low` and answer anything else with a 400. Profiles with
   `EFFORT_ALIAS=1` serve a copy of the template that maps `high` and `max` to
   `xhigh` first, so this works without touching Claude Code.
+- The servers default to each model's deepest reasoning setting, and a
+  request that names an effort overrides that. Through vLLM, Claude Code's
+  `high` reaches the template: the deepest level for every model here except
+  DeepSeek, whose deepest is `max`. llama.cpp's `/v1/messages` passes no
+  effort on, so its default holds, but it does hold the reasoning to the
+  `budget_tokens` of a thinking request.
 - A cold prompt of several hundred thousand tokens takes many minutes to read
   in. `API_TIMEOUT_MS` in `env.sh` is an hour for that reason.
 - If `claude` reports an auth error, the token is wrong: `ANTHROPIC_AUTH_TOKEN`
