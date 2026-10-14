@@ -70,14 +70,15 @@ has it:
 | 4 | DeepSeek V4 Flash, REAP 150B (150B of 284B kept, 13B active, FP4 experts, 85 GB) | 1.05M, llama.cpp, 16-bit cache, reasoning effort max | 501k | 61k 3/3, 255k 3/3, 501k 3/3, 751k 2/3, 985k 2/3 | yes | 16 tok/s | 462 tok/s |
 | 5 | Qwen3.8-27B, 16-bit cache (dense 27B, NVFP4, 22 GB) | 950k, stretched from 256k, 16-bit cache | 507k | 97k 3/3, 245k 3/3, 507k 3/3 | yes | 12 tok/s | 920 tok/s |
 | 6 | Qwen3.5-122B-A10B, FP8 cache (122B, 10B active, NVFP4, 84 GB) | 1.01M, vLLM, stretched from 256k, FP8 cache | 519k | 93k 3/3, 253k 3/3, 519k 3/3, 760k 1/3, 960k 0/3 | yes | 14 tok/s | 1,030 tok/s |
-| 7 | Qwen3.5-122B-A10B (122B, 10B active, NVFP4, 84 GB) | 500k, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 492k 2/3 | yes | 14 tok/s | 1,042 tok/s |
-| 8 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
-| 9 | Qwen3.6-35B-A3B (35B, 3B active, NVFP4, 23 GB) | 1.01M, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 519k 2/3, 1M 1/3 | yes | 77 tok/s | 2,897 tok/s |
-| 10 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
-| 11 | DeepSeek V4 Flash, 2-bit with DSpark (284B, 13B active, 2-bit GGUF and an 8-bit draft, 108 GB) | 131k, llama.cpp, 16-bit cache, reasoning effort max | 55k | 55k 3/3 | yes | 44 tok/s | 326 tok/s |
-| 12 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
-| 13 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
-| 14 | Nemotron-Labs-3 Puzzle 75B (75B, 9B active, NVFP4, 54 GB) | 1M, vLLM, 16-bit cache | none | 89k 2/3, 253k 1/3, 521k 1/3, 760k 0/3, 950k 0/3 | yes | 20 tok/s | 1,565 tok/s |
+| 7 | DeepSeek V4 Flash, REAP 200B (200B of 284B kept, 13B active, 3-bit GGUF, 93 GB) | 1.05M, llama.cpp, 16-bit cache, reasoning effort max | 255k | 61k 3/3, 255k 3/3, 501k 2/3, 751k 2/3, 985k 3/3 | yes | 17 tok/s | 360 tok/s |
+| 8 | Qwen3.5-122B-A10B (122B, 10B active, NVFP4, 84 GB) | 500k, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 492k 2/3 | yes | 14 tok/s | 1,042 tok/s |
+| 9 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
+| 10 | Qwen3.6-35B-A3B (35B, 3B active, NVFP4, 23 GB) | 1.01M, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 519k 2/3, 1M 1/3 | yes | 77 tok/s | 2,897 tok/s |
+| 11 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
+| 12 | DeepSeek V4 Flash, 2-bit with DSpark (284B, 13B active, 2-bit GGUF and an 8-bit draft, 108 GB) | 131k, llama.cpp, 16-bit cache, reasoning effort max | 55k | 55k 3/3 | yes | 44 tok/s | 326 tok/s |
+| 13 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
+| 14 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
+| 15 | Nemotron-Labs-3 Puzzle 75B (75B, 9B active, NVFP4, 54 GB) | 1M, vLLM, 16-bit cache | none | 89k 2/3, 253k 1/3, 521k 1/3, 760k 0/3, 950k 0/3 | yes | 20 tok/s | 1,565 tok/s |
 <!-- results:end -->
 
 How they fail matters as much as where. The Nemotron models return a code
@@ -144,6 +145,10 @@ Pruned to 150B with DeepSeek's own FP4 experts, it also had room for the full
 window, decoded at 16 tok/s and read 460 tok/s. It was exact to 501k and got
 two of three at 751k and at 985k. Both wrong codes came from far off in the
 prompt: locker 12503's for locker 20909, and locker 11427's for locker 27428.
+Pruned to 200B at 3 bits, it decoded at 17 tok/s and got all three at 985k,
+but one wrong at 501k and one at 751k, again from far off: locker 13412's
+code for locker 13984, and locker 40795's for locker 20909. Neither pruned
+build does as well as the whole model at 2 bits.
 
 DSpark, DeepSeek's draft model, more than doubles decode speed: the 2-bit
 build with it decoded at 44 tok/s against 20 without, and the main model
@@ -317,7 +322,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.16.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.17.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -472,13 +477,13 @@ licenses.
   16-bit cache that model passed at 507k; the cache that fits at that
   precision (950k tokens) has no headroom over a prompt that fills the
   window, so that profile stops at 900k, and its 900k step is queued.
-- Running the bake-off: DeepSeek V4 Flash (pruned to 200B, and 0xSero's
-  single-Spark build), GLM-5.3-Flash (2-bit, and
-  pruned at 4-bit), MiMo-V2.6-Flash pruned, Kimi Linear, Seed-OSS-36B,
-  Nemotron-Cascade-2, dots3-note and K2-Horizon MoVA are queued on the Spark,
-  then the models measured before, Flash-Next included, again with
-  `scripts/bench.py`. Clef and Clef-Flash get `scripts/clef-test.py`, the
-  same records as multiple choice and as claims to check.
+- Running the bake-off: DeepSeek V4 Flash in 0xSero's single-Spark build,
+  GLM-5.3-Flash (2-bit, and pruned at 4-bit), MiMo-V2.6-Flash pruned, Kimi
+  Linear, Seed-OSS-36B, Nemotron-Cascade-2, dots3-note and K2-Horizon MoVA
+  are queued on the Spark, then the models measured before, Flash-Next
+  included, again with `scripts/bench.py`. Clef and Clef-Flash get
+  `scripts/clef-test.py`, the same records as multiple choice and as claims
+  to check.
   Larger models from the same labs (DeepSeek V4.1 Flash at 510 GB, MiniMax
   M3, Kimi K3, GLM-5.3) have no build that fits one Spark. Inkling-Small
   (Thinking Machines) needs llama.cpp support that is still a draft.

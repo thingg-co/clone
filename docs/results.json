@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-14",
+ "updated": "2026-10-15",
  "machine": "DGX Spark, 121.7 GiB unified memory",
  "test": "Numbered records with random six-digit codes fill the prompt. Three codes are asked for, near the start, the middle and the end, and must come back through a tool call.",
  "models": [
@@ -309,6 +309,67 @@
      "seconds": 1403,
      "finish": "tool_calls",
      "written": 421
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
+   "label": "deepseek-v4-flash-reap200",
+   "title": "DeepSeek V4 Flash, REAP 200B",
+   "detail": "200B of 284B kept, 13B active, 3-bit GGUF, 93 GB",
+   "note": "llama.cpp, 16-bit cache, reasoning effort max",
+   "model": "deepseek-v4-flash-reap200",
+   "window": 1048576,
+   "decode_tps": 17.1,
+   "prefill_tps": 360,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 61494,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 171,
+     "finish": "tool_calls",
+     "written": 149
+    },
+    {
+     "tokens": 254778,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 742,
+     "finish": "tool_calls",
+     "written": 234
+    },
+    {
+     "tokens": 501486,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 1403,
+     "finish": "tool_calls",
+     "written": 262
+    },
+    {
+     "tokens": 750768,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 1966,
+     "finish": "tool_calls",
+     "written": 228
+    },
+    {
+     "tokens": 985452,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 2539,
+     "finish": "tool_calls",
+     "written": 2159
     }
    ],
    "date": "2026-10-14"
