@@ -37,6 +37,10 @@ section { background: var(--card); border: 1px solid var(--line); border-radius:
 .dl .bar { height: 12px; margin: 5px 0 12px; }
 .dl .bar i { transition: width .6s; }
 .dl.active .bar i { background-image: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); background-size: 200px 100%; background-repeat: no-repeat; animation: flow 1.6s linear infinite; }
+.dl.finishing .bar i, .dl.done .bar i { background: var(--ok); }
+.dl.stopped .bar i { background: var(--warn); }
+.sechead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+.sechead h2 { margin: 0; }
 @keyframes flow { from { background-position: -200px 0; } to { background-position: 1000px 0; } }
 .tablewrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -71,9 +75,9 @@ pre.log { max-height: 320px; overflow-y: auto; white-space: pre-wrap; overflow-w
   <p id="error"></p>
 
   <section id="downloads" hidden>
-    <h2>Downloads</h2>
+    <div class="sechead"><h2>Downloads</h2><button id="dl-clear" hidden>Clear finished</button></div>
     <div id="dl"></div>
-    <p class="note" style="margin-top:0">Files are written to disk in bursts, so the bar can pause for a few minutes while data is still arriving. The speed and finish time come from the network.</p>
+    <p class="note" id="dl-note" style="margin-top:0">Files are written to disk in bursts, so the bar can pause for a few minutes while data is still arriving. The speed and finish time come from the network.</p>
   </section>
 
   <section>
@@ -226,14 +230,32 @@ function renderStatus() {
 
 function renderDownloads() {
   const list = S.downloads || [], gb = n => (n / 1e9).toFixed(1);
+  const at = t => new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
   $("downloads").hidden = !list.length;
+  $("dl-clear").hidden = !list.some(d => d.state === "done" || d.state === "stopped");
+  $("dl-note").hidden = !list.some(d => d.state === "downloading");
   $("dl").replaceChildren(...list.map(d => {
-    const pct = d.total ? Math.min(100, 100 * d.done / d.total) : 0;
-    let right = d.queued ? "waiting for the download ahead of it" : gb(d.done) + (d.total ? " of " + gb(d.total) + " GB on disk" : " GB so far");
-    if (!d.queued && d.rate != null) right += " · receiving " + (d.rate / 1e6).toFixed(0) + " MB/s";
-    if (d.eta) right += " · done ~" + new Date(d.eta * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
-    return el("div", { className: "dl" + (!d.queued && d.rate > 1e5 ? " active" : "") },
-      el("div", { className: "line" }, el("b", { textContent: d.key + (d.total && !d.queued ? "  " + pct.toFixed(0) + "%" : "") }), el("span", { className: "muted", textContent: right })),
+    const pct = d.total ? Math.min(100, 100 * d.done / d.total) : d.state === "done" ? 100 : 0;
+    const size = gb(d.done) + (d.total ? " of " + gb(d.total) : "") + " GB on disk";
+    let tag = "", right;
+    if (d.state === "queued") {
+      tag = pill("waiting", "muted");
+      right = "waiting for the download ahead of it" + (d.done ? " · " + size : "");
+    } else if (d.state === "downloading") {
+      tag = d.total ? Math.floor(pct) + "%" : "";   // floor, so 100% only shows once it is all there
+      right = size + (d.rate != null ? " · receiving " + (d.rate / 1e6).toFixed(0) + " MB/s" : "") + (d.eta ? " · done ~" + at(d.eta) : "");
+    } else if (d.state === "finishing") {
+      tag = pill("finishing", "ok");
+      right = gb(d.done) + " GB on disk · the pull is wrapping up";
+    } else if (d.state === "done") {
+      tag = pill("downloaded", "ok");
+      right = gb(d.done) + " GB on disk" + (d.ended ? " · finished " + at(d.ended) : "");
+    } else {
+      tag = pill("stopped at " + Math.floor(pct) + "%", "warn");
+      right = size + (d.ended ? " · stopped " + at(d.ended) : "");
+    }
+    return el("div", { className: "dl " + d.state + (d.state === "downloading" && d.rate > 1e5 ? " active" : "") },
+      el("div", { className: "line" }, el("b", {}, d.key + "  ", tag), el("span", { className: "muted", textContent: right })),
       el("div", { className: "bar" }, el("i", { style: "width:" + pct + "%" })));
   }));
 }
@@ -401,6 +423,7 @@ $("ctx").onchange = () => renderContext(false);
 $("switch").onclick = () => { const [backend, profile] = picked.split("/"); pickedByUser = false; act({ action: "switch", backend, profile, long: +$("ctx").value }); };
 $("pull").onclick = () => { const [backend, profile] = picked.split("/"); act({ action: "pull", backend, profile }); };
 $("cancel").onclick = async () => { await api("/api/cancel", {}); refresh(); };
+$("dl-clear").onclick = async () => { try { await api("/api/downloads/clear", {}); } catch (e) { $("error").textContent = e.message; } refresh(); };
 $("showlog").onclick = async () => {
   const out = $("unitlog"); out.hidden = false;
   try { out.textContent = (await api("/api/logs?unit=" + $("unit").value)).log; out.scrollTop = out.scrollHeight; } catch (e) { out.textContent = e.message; }

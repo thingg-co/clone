@@ -27,8 +27,11 @@ print(f"{tot/1e9:.1f}")' "$HF_INCLUDE" 2>/dev/null || echo "?")
     dest="$MODELS_DIR/${MODEL_DIR:-$key}"
     mkdir -p "$dest"
     log "$key: $HF_REPO ($HF_INCLUDE, ~${gb} GB) -> $dest"
+    # One --include per pattern: hf takes a second word after the flag as a file name, and
+    # once it has file names it ignores --include altogether.
     read -ra pats <<< "$HF_INCLUDE"
-    hf download "$HF_REPO" --include "${pats[@]}" --local-dir "$dest"
+    inc=(); for p in "${pats[@]}"; do inc+=(--include "$p"); done
+    hf download "$HF_REPO" "${inc[@]}" --local-dir "$dest"
     gguf=$("$ROOT/spark/resolve-gguf.sh" "$key")
     log "$key ready: $gguf"
 done

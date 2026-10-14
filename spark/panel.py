@@ -131,26 +131,83 @@ def hosts() -> list:
 
 
 # ---- download progress --------------------------------------------------------
-TOTALS: dict = {}    # (repo, include) -> bytes, or (None, time of the failed lookup)
+LISTINGS: dict = {}  # repo -> [(path, size, sha256 or None)], or (None, time of the failed lookup)
 SAMPLES: dict = {}   # profile id -> [(time, bytes)], for the rate
+LIVE: dict = {}      # profile id -> its entry as last shown while its pull ran
+ENDED: dict = {}     # profile id -> the last entry of a pull that finished or stopped, until cleared
+CLEARED: set = set() # finished entries hidden by Clear while their script works on other pulls
+_dl_lock = threading.Lock()
+_listing: set = set()  # repos whose listing is being fetched
 
 
-def repo_total(repo: str, include: str = "*"):
-    """Size of what a pull fetches, from the Hugging Face file listing. None if it cannot be had."""
-    k = (repo, include)
-    hit = TOTALS.get(k)
-    if isinstance(hit, int) or (hit and time.time() - hit[1] < 120):
-        return hit if isinstance(hit, int) else None
+def repo_files(repo: str):
+    """The repo's files as (path, size, sha256), from the Hugging Face listing. None until it is in:
+    it is fetched in the background, since a download can slow the line enough to stall the page."""
+    hit = LISTINGS.get(repo)
+    if isinstance(hit, list):
+        return hit
+    if repo and repo not in _listing and not (hit and time.time() - hit[1] < 120):
+        _listing.add(repo)
+        threading.Thread(target=fetch_listing, args=(repo,), daemon=True).start()
+    return None
+
+
+def fetch_listing(repo: str) -> None:
     try:
-        with urllib.request.urlopen(f"https://huggingface.co/api/models/{repo}/tree/main?recursive=true", timeout=6) as r:
-            items = json.load(r)
-        pats = include.split() or ["*"]
-        TOTALS[k] = sum(i.get("size", 0) for i in items
-                        if i.get("type") == "file" and any(fnmatch.fnmatch(i["path"].split("/")[-1], p) for p in pats))
-        return TOTALS[k]
+        with urllib.request.urlopen(f"https://huggingface.co/api/models/{repo}/tree/main?recursive=true", timeout=30) as r:
+            LISTINGS[repo] = [(i["path"], i.get("size", 0), (i.get("lfs") or {}).get("oid"))
+                              for i in json.load(r) if i.get("type") == "file"]
     except Exception:
-        TOTALS[k] = (None, time.time())
-        return None
+        LISTINGS[repo] = (None, time.time())
+    finally:
+        _listing.discard(repo)
+
+
+def picked(files: list, pats) -> list:
+    """The files a pull with these patterns fetches. hf matches each pattern against the whole path."""
+    return [f for f in files if any(fnmatch.fnmatch(f[0], p) for p in pats or ["*"])]
+
+
+HF_VALUE_FLAGS = {"--type", "--repo-type", "--revision", "--exclude", "--cache-dir", "--local-dir", "--token", "--max-workers", "--format"}
+
+
+def hf_pulls(ps: str) -> list:
+    """(repo, patterns) for every hf download running. No patterns means the whole repo."""
+    out = []
+    for m in re.finditer(r"\bhf download (\S+)(.*)$", ps, re.M):
+        words, names, inc, i = m.group(2).split(), [], [], 0
+        while i < len(words):
+            w = words[i]
+            if w == "--include":
+                inc += words[i + 1:i + 2]
+                i += 2
+            elif w.startswith("--include="):
+                inc.append(w.split("=", 1)[1])
+                i += 1
+            else:
+                if not w.startswith("-"):
+                    names.append(w)
+                i += 2 if w in HF_VALUE_FLAGS else 1
+        out.append((m.group(1), names or inc))   # given file names, hf ignores --include
+    return out
+
+
+def all_parts(names: list) -> bool:
+    """Whether each split GGUF among these has every part (x-00001-of-00003.gguf and the rest)."""
+    have = set(names)
+    for n in names:
+        m = re.match(r"(.*)-\d{5}-of-(\d{5})\.gguf$", n)
+        if m and any(f"{m.group(1)}-{i:05d}-of-{m.group(2)}.gguf" not in have for i in range(1, int(m.group(2)) + 1)):
+            return False
+    return True
+
+
+def overlaps(repo: str, mine, theirs) -> bool:
+    """Whether a pull of the patterns `theirs` fetches any file of `mine`. Empty means the whole repo."""
+    if not mine or not theirs or set(mine) & set(theirs):
+        return True
+    files = repo_files(repo)
+    return bool(files) and bool({f[0] for f in picked(files, mine)} & {f[0] for f in picked(files, theirs)})
 
 
 NET: list = []       # [(time, bytes received on all interfaces but loopback)]
@@ -185,78 +242,151 @@ def bytes_on_disk(files) -> int:
     return n
 
 
-def downloads(profs: list, env: dict) -> list:
-    """One entry per pull that is running or waiting to run."""
-    ps = run(["ps", "-eo", "args"])
-    models, out, now, net = Path(env["MODELS_DIR"]), [], time.time(), net_rate()
-    for p in profs:
-        script = "vllm.sh pull" if p["backend"] == "vllm" else "pull-model.sh"
-        waiting = re.search(rf"{re.escape(script)}(?: [\w.-]+)* {re.escape(p['key'])}(?:\s|$)", ps, re.M) is not None
-        if not (p["downloading"] or waiting):
-            SAMPLES.pop(p["backend"] + "/" + p["key"], None)
+def progress(p: dict, models: Path) -> tuple:
+    """(bytes on disk, bytes in all) of the files a profile's pull fetches. The total is None if unknown."""
+    if p["backend"] == "vllm" and p.get("own_dir"):   # a runner that downloads into models/<key>
+        d, files = models / p["key"], repo_files(p["repo"])
+        return (bytes_on_disk([*d.rglob("*.safetensors"), *d.rglob("*.incomplete")]) if d.is_dir() else 0,
+                sum(f[1] for f in files if f[0].endswith(".safetensors")) if files else None)
+    if p["backend"] == "vllm":
+        done, total = 0, 0
+        for repo in [p["repo"], *p["extra_repos"]]:
+            blobs = models / "hf-cache" / "hub" / ("models--" + repo.replace("/", "--")) / "blobs"
+            files = repo_files(repo)
+            done += bytes_on_disk(blobs.iterdir()) if blobs.is_dir() else 0
+            total = total + sum(f[1] for f in files) if files and total is not None else None
+        return done, total
+    # Profiles can share a folder (MODEL_DIR), so only this one's files count. hf writes a file as
+    # .cache/huggingface/download/<name hash>.<sha256>.<n>.incomplete and moves it in when done.
+    # A new hf process starts a new part-file rather than resuming, so only the newest counts.
+    d, files = models / p["dir"], repo_files(p["repo"])
+    if not d.is_dir():
+        return 0, sum(f[1] for f in picked(files, p["include"])) if files else None
+    parts = list((d / ".cache").rglob("*.incomplete"))
+    if files is None:   # no listing yet: this profile's GGUFs, and every part-file in the folder
+        return bytes_on_disk([g for g in d.rglob("*.gguf") if picked([(g.relative_to(d).as_posix(),)], p["include"])] + parts), None
+    mine = picked(files, p["include"])
+    todo = {f[2] for f in mine if f[2] and not (d / f[0]).exists()}
+    newest: dict = {}
+    for x in parts:
+        oid = x.name.split(".")[1]
+        try:
+            t = x.stat().st_mtime
+        except OSError:
             continue
-        if p["backend"] == "vllm" and p.get("own_dir"):   # a runner that downloads into models/<key>
-            d = models / p["key"]
-            done = bytes_on_disk([*d.rglob("*.safetensors"), *d.rglob("*.incomplete")]) if d.is_dir() else 0
-            total = repo_total(p["repo"])
-        elif p["backend"] == "vllm":
-            blobs = models / "hf-cache" / "hub" / ("models--" + p["repo"].replace("/", "--")) / "blobs"
-            done = bytes_on_disk(blobs.iterdir()) if blobs.is_dir() else 0
-            total = repo_total(p["repo"])
-        else:
-            d = models / p["dir"]
-            done = bytes_on_disk([*d.rglob("*.gguf"), *d.rglob("*.incomplete")]) if d.is_dir() else 0
-            total = repo_total(p["repo"], read_env(ROOT / "config" / "models" / (p["key"] + ".env")).get("HF_INCLUDE", "*"))
-        hist = SAMPLES.setdefault(p["backend"] + "/" + p["key"], [])
-        if not hist or now - hist[-1][0] >= 5:
-            hist.append((now, done))
-        del hist[:-150]
-        # Bytes land in bursts, so average over up to ten minutes or the finish time jumps around.
-        old = next((h for h in hist if now - h[0] <= 600), hist[0])
-        rate = (done - old[1]) / (now - old[0]) if now - old[0] >= 30 else None
-        queued = not p["downloading"] and done == 0
-        # The downloader holds data in memory and writes files out in bursts, so bytes on disk
-        # stand still for minutes at a time. The network counter shows what is arriving meanwhile.
-        if not queued and net and (not rate or net > rate):
-            rate = net / max(1, sum(1 for q in profs if q["downloading"]))  # the link is shared
-        out.append({
-            "key": p["key"], "backend": p["backend"], "done": done, "total": total, "rate": rate, "queued": queued,
-            "eta": now + (total - done) / rate if rate and rate > 1e5 and total and total > done and not queued else None,
-        })
-    return out
+        if oid in todo and t > newest.get(oid, (0, None))[0]:
+            newest[oid] = (t, x)
+    return bytes_on_disk([d / f[0] for f in mine] + [x for _, x in newest.values()]), sum(f[1] for f in mine)
+
+
+def downloads(profs: list, env: dict) -> list:
+    """One entry per pull that is running or waiting to run, then the ones that ended, until cleared."""
+    with _dl_lock:
+        ps = run(["ps", "-eo", "args"])
+        models, now, net = Path(env["MODELS_DIR"]), time.time(), net_rate()
+
+        def ident(p: dict) -> str:
+            return p["backend"] + "/" + p["key"]
+        named = {ident(p) for p in profs if re.search(
+            rf"{re.escape('vllm.sh pull' if p['backend'] == 'vllm' else 'pull-model.sh')}(?: [\w.-]+)* {re.escape(p['key'])}(?:\s|$)", ps, re.M)}
+        # A pull shows once, under the profile it was started for, though another profile may use
+        # the same files (the 2-bit DeepSeek and its DSpark variant). A bare hf download shows
+        # under each profile it feeds.
+        scripted = {p["repo"] for p in profs if ident(p) in named}
+        shown = [p for p in profs if ident(p) in named or (p["downloading"] and p["repo"] not in scripted)]
+        busy = sum(1 for p in shown if p["downloading"])
+        live = {}
+        for p in shown:
+            k = ident(p)
+            done, total = progress(p, models)
+            hist = SAMPLES.setdefault(k, [])
+            if not hist or now - hist[-1][0] >= 5:
+                hist.append((now, done))
+            del hist[:-150]
+            # Bytes land in bursts, so average over up to ten minutes or the finish time jumps around.
+            old = next((h for h in hist if now - h[0] <= 600), hist[0])
+            rate = (done - old[1]) / (now - old[0]) if now - old[0] >= 30 else None
+            full = bool(total) and done >= total
+            if p["downloading"]:
+                state = "finishing" if full else "downloading"
+            else:
+                state = "done" if full or (total is None and p["downloaded"]) else "queued"
+            # The downloader holds data in memory and writes files out in bursts, so bytes on disk
+            # stand still for minutes and then jump (160 MB/s over a 19 MB/s line). The network
+            # counter shows what is really arriving, so it wins when there is one.
+            if state == "downloading" and net:
+                rate = net / max(1, busy)  # the link is shared
+            if state != "downloading":
+                rate = None
+            live[k] = {
+                "key": p["key"], "backend": p["backend"], "state": state, "done": done, "total": total, "rate": rate,
+                "eta": now + (total - done) / rate if rate and rate > 1e5 and total else None,
+                # a pull that only checked files already on disk is not worth keeping once it ends
+                "moved": state == "downloading" or LIVE.get(k, {}).get("moved", False),
+            }
+        for k, e in LIVE.items():
+            if k in live or not e["moved"] or k in CLEARED:
+                continue
+            p = next((q for q in profs if ident(q) == k), None)
+            done, total = progress(p, models) if p else (e["done"], e["total"])
+            ok = done >= total if total else bool(p and p["downloaded"])
+            ENDED[k] = {**e, "state": "done" if ok else "stopped", "done": done, "total": total, "rate": None, "eta": None, "ended": now}
+        for k in live:
+            ENDED.pop(k, None)    # pulled again
+        for k in [k for k in SAMPLES if k not in live]:
+            del SAMPLES[k]
+        LIVE.clear()
+        LIVE.update(live)
+        CLEARED.intersection_update(k for k, e in live.items() if e["state"] == "done")
+        return [e for k, e in live.items() if k not in CLEARED] + list(ENDED.values())
+
+
+def clear_downloads() -> None:
+    """Forget the pulls that ended, and hide finished ones whose script is still busy with others."""
+    with _dl_lock:
+        ENDED.clear()
+        CLEARED.update(k for k, e in LIVE.items() if e["state"] == "done")
+    _snap["t"] = 0.0    # the next push shows it
 
 
 def profiles(env: dict) -> list:
     out = []
     models = Path(env["MODELS_DIR"])
-    ps = run(["ps", "-eo", "args"])  # leftover .incomplete files from a cancelled pull are not a download
+    # Only a running hf download counts: leftover .incomplete files from a cancelled pull are not
+    # one. Profiles can share a repo (the DeepSeek GGUFs), so its patterns have to reach our files.
+    pulls = hf_pulls(run(["ps", "-eo", "args"]))
 
-    def fetching(repo: str) -> bool:
-        return re.search(rf"hf download {re.escape(repo)}(\s|$)", ps, re.M) is not None
+    def fetching(repo: str, pats=()) -> bool:
+        return any(r == repo and overlaps(repo, pats, theirs) for r, theirs in pulls)
     for f in sorted((ROOT / "config" / "vllm").glob("*.env")):
         p = read_env(f)
-        repo = p.get("HF_REPO", "")
+        repo, extra = p.get("HF_REPO", ""), p.get("EXTRA_REPOS", "").split()
         out.append({
-            "backend": "vllm", "key": f.stem, "served": p.get("SERVED_NAME", f.stem), "repo": repo,
+            "backend": "vllm", "key": f.stem, "served": p.get("SERVED_NAME", f.stem), "repo": repo, "extra_repos": extra,
             "ctx": to_int(p.get("MAX_LEN"), 0), "long_ctx": to_int(p.get("LONG_MAX_LEN")),
             "native_ctx": to_int(p.get("ROPE_ORIG")), "runner": bool(p.get("RUNNER")), "own_dir": bool(p.get("PULL")),
             "thinking": "native" if p.get("REASONING_PARSER") else "prompted",
             "tools": "vLLM parser " + p["TOOL_PARSER"] if p.get("TOOL_PARSER") else "none", "min_free_gb": to_int(p.get("MIN_FREE_GB"), 0),
             "downloaded": (any((models / f.stem).rglob("*.safetensors")) if p.get("PULL")   # kept by its runner, not in the cache
                            else hf_complete(models / "hf-cache" / "hub" / ("models--" + repo.replace("/", "--")))),
-            "downloading": fetching(repo),
+            "downloading": any(fetching(r) for r in [repo, *extra]),
         })
     for f in sorted((ROOT / "config" / "models").glob("*.env")):
         p = read_env(f)
         d = models / (p.get("MODEL_DIR") or f.stem)
-        pattern = p.get("GGUF_MATCH", "").lower()
+        pattern, pats = p.get("GGUF_MATCH", "").lower(), p.get("HF_INCLUDE", "").split()
+        ggufs = [g.relative_to(d).as_posix() for g in d.rglob("*.gguf")] if d.is_dir() else []
+        ggufs = [g for g in ggufs if any(fnmatch.fnmatch(g, q) for q in pats)] if pats else ggufs
         out.append({
-            "backend": "llama", "key": f.stem, "dir": d.name, "served": p.get("ALIAS", f.stem), "repo": p.get("HF_REPO", ""),
+            "backend": "llama", "key": f.stem, "dir": d.name, "served": p.get("ALIAS", f.stem), "repo": p.get("HF_REPO", ""), "include": pats,
             "ctx": to_int(p.get("CTX"), 0), "long_ctx": None, "ctx_fit": p.get("CTX") == "fit",
             "thinking": "native" if re.search(r"gpt-oss|glm", f.stem) or "--reasoning on" in p.get("EXTRA_ARGS", "") else "prompted",
             "tools": "set by the model's template", "min_free_gb": to_int(p.get("MIN_FREE_GB"), 0),
-            "downloaded": d.is_dir() and any(pattern in str(g).lower() for g in d.rglob("*.gguf")),
-            "downloading": fetching(p.get("HF_REPO", "")),
+            # every pattern needs its file (the DSpark profile wants the draft as well as the
+            # weights), and a split GGUF every part: hf moves each part in only once it is whole
+            "downloaded": any(pattern in g.lower() for g in ggufs) and all(any(fnmatch.fnmatch(g, q) for g in ggufs) for q in pats)
+                          and all_parts(ggufs),
+            "downloading": fetching(p.get("HF_REPO", ""), pats),
         })
     return out
 
@@ -585,6 +715,9 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError("body must be a JSON object")
             if self.path == "/api/cancel":
                 JOBS.cancel()
+                return self.send(200, {"ok": True})
+            if self.path == "/api/downloads/clear":
+                clear_downloads()
                 return self.send(200, {"ok": True})
             if self.path != "/api/action":
                 return self.send(404, {"error": "not found"})
