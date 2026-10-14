@@ -73,9 +73,8 @@ case "$cmd" in
             exec "$ROOT/$RUNNER" serve "$PROFILE_KEY"
         fi
         image=$(find_image)
-        have=$(mem_available_gb)
-        if [ "$have" -lt "$MIN_FREE_GB" ] && [ "${FORCE:-0}" != 1 ]; then
-            die "only ${have} GB available, $PROFILE_KEY wants ${MIN_FREE_GB} GB (FORCE=1 to override)"
+        if [ "${FORCE:-0}" != 1 ] && ! have=$(settled_mem_gb "$MIN_FREE_GB"); then
+            die "$PROFILE_KEY wants ${MIN_FREE_GB} GB available and steady for 30 s; ${have} GB is available (FORCE=1 to override)"
         fi
         max_len=$MAX_LEN
         overrides=()

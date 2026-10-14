@@ -20,10 +20,11 @@ load_model "$key"
 gguf=$("$ROOT/spark/resolve-gguf.sh" "$key")
 server=$(llama_bin llama-server)
 
-have=$(mem_available_gb)
-if [ "$have" -lt "$MIN_FREE_GB" ] && [ "${FORCE:-0}" != 1 ]; then
+if [ "${FORCE:-0}" = 1 ]; then
+    have=$(mem_available_gb)
+elif ! have=$(settled_mem_gb "$MIN_FREE_GB"); then
     "$ROOT/spark/preflight.sh" "$key" || true
-    die "only ${have} GB available, $key wants ${MIN_FREE_GB} GB. Stop whatever is using memory or run with FORCE=1."
+    die "$key wants ${MIN_FREE_GB} GB available and steady for 30 s; ${have} GB is available. Stop whatever is using memory or run with FORCE=1."
 fi
 
 # CTX in the profile is per slot. llama-server's -c is the total, divided between -np slots.

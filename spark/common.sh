@@ -50,6 +50,29 @@ llama_bin() {
 mem_available_gb() { awk '/MemAvailable/ {printf "%d", $2/1048576}' /proc/meminfo; }
 mem_total_gb() { awk '/MemTotal/ {printf "%d", $2/1048576}' /proc/meminfo; }
 
+# Available memory in GB once it has stopped moving. A server that was just stopped or killed
+# gives its memory back over many seconds, and three times a model that started loading within
+# six seconds of the last one's exit stalled the whole Spark for hours. Waits until the readings
+# over 30 s stay within 1 GB of each other and reach $1 GB, for at most $2 seconds (default
+# 300). Prints the last reading; returns 1 if memory never got there.
+settled_mem_gb() {
+    local want=$1 secs=${2:-300} t=0 n=0 now lo hi
+    lo=$(mem_available_gb); hi=$lo
+    while :; do
+        sleep 5; t=$((t + 5))
+        now=$(mem_available_gb)
+        if [ $((now - lo)) -gt 1 ] || [ $((hi - now)) -gt 1 ]; then
+            lo=$now; hi=$now; n=0   # still moving: start the 30 s over
+        else
+            [ "$now" -lt "$lo" ] && lo=$now
+            [ "$now" -gt "$hi" ] && hi=$now
+            n=$((n + 1))
+        fi
+        if [ "$n" -ge 6 ] && [ "$now" -ge "$want" ]; then echo "$now"; return 0; fi
+        if [ "$t" -ge "$secs" ]; then echo "$now"; return 1; fi
+    done
+}
+
 # Wait for an llama-server health endpoint. $1 = port, $2 = seconds (default 600).
 wait_healthy() {
     local port=$1 secs=${2:-600} i=0

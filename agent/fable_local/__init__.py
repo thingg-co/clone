@@ -1,3 +1,3 @@
 """fable-local: a terminal coding agent for a locally served model."""
 
-__version__ = "0.2.19"
+__version__ = "0.2.20"

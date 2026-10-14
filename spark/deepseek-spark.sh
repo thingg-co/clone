@@ -66,7 +66,9 @@ case "$cmd" in
         [ -f "$DATA/tp1/rank-sliced-tp1-manifest.json" ] || die "the weights are not repacked yet; run $0 prepare"
         max_len=262144
         if [ -s "$FIT" ] && [ "$(cat "$FIT")" -lt "$max_len" ]; then max_len=$(cat "$FIT"); fi
-        util=$(python3 -c "print(round(min(0.9465, ($(mem_available_gb) - 4) / 121.7), 4))")
+        # The share is worked out from what is free, so wait for the last server's memory to come back.
+        avail=$(settled_mem_gb 0) || true
+        util=$(python3 -c "print(round(min(0.9465, ($avail - 4) / 121.7), 4))")
         log "DeepSeek V4 Flash, single-Spark build, on :$PORT: window $max_len, memory share $util"
         docker rm -f "$NAME" >/dev/null 2>&1 || true
         # The image's own defaults are thinking off and effort high, which adds no instruction.

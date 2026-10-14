@@ -322,7 +322,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.19.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.20.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -414,9 +414,13 @@ Each profile is its own download; the bootstrap pulls only the one in
 the page, before switching to another. To try a profile in the foreground
 first: `systemctl --user stop vllm; spark/vllm.sh serve qwen3.8-27b`.
 
-Memory is checked before a model starts (`MIN_FREE_GB` in each profile).
-`spark/preflight.sh` shows what is using the box if a start is refused;
-`FORCE=1` overrides.
+Memory is checked before a model starts (`MIN_FREE_GB` in each profile), and
+the start waits until the available memory has held steady for 30 seconds. A
+server that was just stopped or killed takes a while to give its memory back,
+and a model that began loading in that gap stalled the Spark for hours, three
+times. The units don't restart a server the OOM killer took, and give up
+after three failed starts in ten minutes. `spark/preflight.sh` shows what is
+using the box if a start is refused; `FORCE=1` skips the check and the wait.
 
 ## The agent
 

@@ -78,9 +78,8 @@ case "$cmd" in
         # time. The first time it downloads the base image and takes a good twenty minutes.
         checkout
         flash ./flash setup "$(profile)"
-        have=$(mem_available_gb)
-        if [ "$have" -lt 100 ] && [ "${FORCE:-0}" != 1 ]; then
-            die "only ${have} GB available, qwen3.8-flash-next wants 100 GB (FORCE=1 to override)"
+        if [ "${FORCE:-0}" != 1 ] && ! have=$(settled_mem_gb 100); then
+            die "qwen3.8-flash-next wants 100 GB available and steady for 30 s; ${have} GB is available (FORCE=1 to override)"
         fi
         ctx=$(window)
         # The recipe always stretches positions by 4. Qwen's card says to use 2 when the window
