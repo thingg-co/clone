@@ -1,0 +1,19 @@
+# local secrets / per-machine settings
+config/spark.env
+# big things that live on the Spark, inside this same tree
+/models/
+/llama.cpp/
+/.tools/
+/run/
+/logs/
+# python
+agent/.venv/
+agent/.fable/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+# personal prompt files; fable reads <name>.local.md in place of <name>.md
+agent/fable_local/prompts/*.local.md
+# third-party recipes cloned at a pinned commit on the Spark
+/third_party/

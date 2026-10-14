@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clone</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%BD%3C/text%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f6f6f3; --card: #ffffff; --ink: #1c1d1f; --muted: #6a6d73; --line: #dcdcd6;
+  --accent: #2f5d50; --accent-ink: #ffffff; --ok: #2e7d4f; --warn: #a66a00; --bad: #b3372f; --code: #f0f0eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #151617; --card: #1e2022; --ink: #e8e8e4; --muted: #9a9da3; --line: #33363a;
+    --accent: #6fb39c; --accent-ink: #10201b; --ok: #6cc08b; --warn: #e0a84a; --bad: #ef7d74; --code: #17191a;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding: 20px 16px 48px; }
+h1 { font-size: 20px; margin: 0; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 16px; }
+header .sub { color: var(--muted); }
+section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+.status { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.stat b { display: block; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+.stat span { color: var(--muted); font-size: 13px; }
+.pill { display: inline-block; padding: 1px 9px; border-radius: 99px; font-size: 12px; font-weight: 600; border: 1px solid currentColor; }
+.ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .muted { color: var(--muted); }
+.bar { height: 8px; background: var(--code); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+.bar i { display: block; height: 100%; background: var(--accent); }
+.dl { margin-bottom: 14px; }
+.dl .line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 14px; }
+.dl .line b { font-weight: 600; }
+.dl .bar { height: 12px; margin: 5px 0 12px; }
+.dl .bar i { transition: width .6s; }
+.dl.active .bar i { background-image: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); background-size: 200px 100%; background-repeat: no-repeat; animation: flow 1.6s linear infinite; }
+@keyframes flow { from { background-position: -200px 0; } to { background-position: 1000px 0; } }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 4px 8px; white-space: nowrap; }
+td { padding: 8px; border-top: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+tr.current td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+td.name { font-weight: 600; }
+button, select, input { font: inherit; border-radius: 7px; border: 1px solid var(--line); background: var(--card); color: var(--ink); padding: 5px 11px; cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+input { cursor: text; }
+button:disabled { opacity: .45; cursor: default; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+pre { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 6px 0 0; overflow-x: auto; font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
+pre.log { max-height: 320px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cmd { margin-top: 14px; }
+.cmd .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cmd .head b { font-size: 14px; }
+.note { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+#error { color: var(--bad); min-height: 1.4em; margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>👽 clone</h1>
+    <span class="sub" id="host"></span>
+    <span class="sub" id="live" style="margin-left:auto"></span>
+  </header>
+  <p id="error"></p>
+
+  <section id="downloads" hidden>
+    <h2>Downloads</h2>
+    <div id="dl"></div>
+    <p class="note" style="margin-top:0">Files are written to disk in bursts, so the bar can pause for a few minutes while data is still arriving. The speed and finish time come from the network.</p>
+  </section>
+
+  <section>
+    <h2>Model server</h2>
+    <div class="status" id="status"></div>
+    <div class="row">
+      <button data-act="start" data-target="main">Start</button>
+      <button data-act="restart" data-target="main">Restart</button>
+      <button data-act="stop" data-target="main">Stop</button>
+      <span id="sidekick-controls"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Model and context</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th></th><th>profile</th><th>backend</th><th>context</th><th>thinking</th><th>tool calls</th><th>weights</th></tr></thead>
+      <tbody id="profiles"></tbody>
+    </table></div>
+    <div class="row">
+      <label for="ctx">Context</label>
+      <select id="ctx"></select>
+      <button class="primary" id="switch">Switch and restart</button>
+      <button id="pull">Pull weights</button>
+    </div>
+    <p class="note" id="profile-note"></p>
+  </section>
+
+  <section>
+    <h2>Connect</h2>
+    <div class="row" style="margin-top:0">
+      <label for="which">Model</label>
+      <select id="which"></select>
+      <label for="via">Reach the Spark as</label>
+      <select id="via"></select>
+      <input id="viaother" placeholder="or another name or address" size="26" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="cmd">
+      <div class="head"><b>Claude Code</b><button data-copy="claude">Copy</button></div>
+      <pre id="claude"></pre>
+    </div>
+    <div class="cmd">
+      <div class="head"><b>fable</b><button data-copy="fable">Copy</button></div>
+      <pre id="fable"></pre>
+    </div>
+    <div class="row">
+      <button data-act="messages">Test the Claude endpoint</button>
+      <button data-act="smoke">Test tool calling</button>
+    </div>
+    <p class="note" id="connect-note"></p>
+    <p class="note">Both commands run on any machine that can reach the Spark by the name chosen above. fable needs <code>uv</code> there and installs itself from this page; add <code>--doctor</code> to check the connection first. Claude Code needs the server to answer on /v1/messages; the first test checks that. The commands contain the API key.</p>
+  </section>
+
+  <section>
+    <h2>Activity</h2>
+    <div class="row" style="margin-top:0">
+      <span id="job"></span>
+      <button id="cancel" hidden>Cancel</button>
+    </div>
+    <pre class="log" id="joblog">(nothing has run yet)</pre>
+    <div class="row">
+      <label for="unit">Service log</label>
+      <select id="unit"><option>vllm</option><option>llama-server</option><option>llama-sidekick</option><option>clone-panel</option></select>
+      <button id="showlog">Show</button>
+    </div>
+    <pre class="log" id="unitlog" hidden></pre>
+  </section>
+
+  <section>
+    <h2>GPU processes</h2>
+    <pre id="gpu">(none)</pre>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids); return n; };
+const tokens = n => !n ? "?" : n >= 1e6 ? (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M" : Math.round(n / 1000) + "k";
+let S = null, picked = null, pickedByUser = false;
+
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json", "X-Clone-Panel": "1" }, body: JSON.stringify(body) } : {});
+  const data = await r.json().catch(() => ({ error: "HTTP " + r.status }));
+  if (!r.ok) throw new Error(data.error || "HTTP " + r.status);
+  return data;
+}
+async function act(body) {
+  $("error").textContent = "";
+  try { await api("/api/action", body); await refresh(); } catch (e) { $("error").textContent = e.message; }
+}
+
+function pill(text, cls) { return el("span", { className: "pill " + cls, textContent: text }); }
+function serviceState(x) {
+  if (x.up) return ["serving", "ok"];
+  if (x.service === "active" || x.service === "activating") return ["loading", "warn"];
+  if (x.service === "failed") return ["failed", "bad"];
+  return [x.service === "unknown" ? "unknown" : "stopped", "muted"];
+}
+function currentProfile() {
+  const c = S.config;
+  return S.profiles.find(p => p.backend === c.backend && p.key === (c.backend === "vllm" ? c.vllm_profile : c.model));
+}
+function configuredContext() {
+  const p = currentProfile(), long = S.config.vllm_long;
+  if (!p) return null;
+  return p.backend !== "vllm" || !long ? p.ctx : long === 1 ? p.long_ctx : long;
+}
+
+function renderStatus() {
+  const m = S.main, [text, cls] = serviceState(m), mem = S.memory, box = $("status");
+  const served = m.up ? m.models.join(", ") : (currentProfile() || {}).served || "?";
+  const stat = (label, ...value) => el("div", { className: "stat" }, el("span", { textContent: label }), el("b", {}, ...value));
+  box.replaceChildren(
+    stat("main model, port " + m.port, served + " ", pill(text, cls)),
+    stat(m.up ? "context window" : "context when it starts", tokens(m.up ? m.context : configuredContext()) + " tokens"),
+  );
+  if (mem.total_gb) {
+    const used = mem.total_gb - mem.available_gb;
+    const d = stat("memory", used.toFixed(0) + " of " + mem.total_gb.toFixed(0) + " GB in use");
+    d.append(el("div", { className: "bar" }, el("i", { style: "width:" + Math.min(100, 100 * used / mem.total_gb) + "%" })));
+    box.append(d);
+  }
+  if (S.sidekick) {
+    const [t, c] = serviceState(S.sidekick);
+    box.append(stat("sidekick, port " + S.sidekick.port, S.config.sidekick_model + " ", pill(t, c)));
+  }
+  const sk = $("sidekick-controls");
+  if (S.sidekick && !sk.childElementCount) {
+    for (const a of ["start", "stop"]) sk.append(el("button", { textContent: a[0].toUpperCase() + a.slice(1) + " sidekick", onclick: () => act({ action: a, target: "sidekick" }), style: "margin-right:8px" }));
+  }
+  $("host").textContent = S.host;
+}
+
+function renderDownloads() {
+  const list = S.downloads || [], gb = n => (n / 1e9).toFixed(1);
+  $("downloads").hidden = !list.length;
+  $("dl").replaceChildren(...list.map(d => {
+    const pct = d.total ? Math.min(100, 100 * d.done / d.total) : 0;
+    let right = d.queued ? "waiting for the download ahead of it" : gb(d.done) + (d.total ? " of " + gb(d.total) + " GB on disk" : " GB so far");
+    if (!d.queued && d.rate != null) right += " · receiving " + (d.rate / 1e6).toFixed(0) + " MB/s";
+    if (d.eta) right += " · done ~" + new Date(d.eta * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+    return el("div", { className: "dl" + (!d.queued && d.rate > 1e5 ? " active" : "") },
+      el("div", { className: "line" }, el("b", { textContent: d.key + (d.total && !d.queued ? "  " + pct.toFixed(0) + "%" : "") }), el("span", { className: "muted", textContent: right })),
+      el("div", { className: "bar" }, el("i", { style: "width:" + pct + "%" })));
+  }));
+}
+
+let profilesKey = "";
+function renderProfiles() {
+  // Rebuild the table only when something in it changed, so a click is never lost to a redraw.
+  const key = JSON.stringify([S.profiles, S.config, S.job.running]);
+  if (key === profilesKey) return;
+  profilesKey = key;
+  const cur = currentProfile();
+  if (!picked || !pickedByUser) picked = cur ? cur.backend + "/" + cur.key : picked;
+  $("profiles").replaceChildren(...S.profiles.map(p => {
+    const id = p.backend + "/" + p.key;
+    const radio = el("input", { type: "radio", name: "profile", checked: id === picked, onchange: () => { picked = id; pickedByUser = true; renderContext(true); } });
+    const ctx = p.long_ctx ? tokens(p.ctx) + " to " + tokens(p.long_ctx) : tokens(p.ctx);
+    const tr = el("tr", { className: p === cur ? "current" : "" },
+      el("td", {}, radio), el("td", { className: "name", textContent: p.key }), el("td", { textContent: p.backend === "vllm" ? "vLLM" : "llama.cpp" }),
+      el("td", { textContent: ctx }), el("td", { textContent: p.thinking === "native" ? "native" : "prompted by fable" }),
+      el("td", { textContent: p.tools }), el("td", {}, p.downloading ? pill("downloading", "warn") : p.downloaded ? pill("on disk", "ok") : pill("not pulled", "muted")));
+    tr.onclick = e => { if (e.target !== radio) radio.click(); };
+    return tr;
+  }));
+  renderContext(false);
+}
+
+function renderContext(reset) {
+  const p = S.profiles.find(x => x.backend + "/" + x.key === picked), sel = $("ctx");
+  if (!p) return;
+  const stretched = p.native_ctx && p.native_ctx !== p.ctx;   // its smallest window is already past the trained length
+  const options = [[0, tokens(p.ctx) + (stretched ? " (default)" : " (native)")]];
+  if (p.long_ctx) { if (!p.runner && p.ctx < 524288 && 524288 < p.long_ctx) options.push([524288, "524k (YaRN x2)"]); options.push([1, tokens(p.long_ctx) + " (the maximum)"]); }
+  const before = sel.value, same = sel.dataset.for === picked;
+  sel.replaceChildren(...options.map(([v, label]) => el("option", { value: v, textContent: label })));
+  sel.dataset.for = picked;
+  const isCurrent = p === currentProfile();
+  if (same && !reset && before !== "") sel.value = before;
+  else sel.value = isCurrent ? S.config.vllm_long : (p.long_ctx ? 1 : 0);
+  if (sel.selectedIndex < 0) sel.selectedIndex = 0;
+  sel.disabled = options.length < 2;
+  const busy = S.job.running;
+  $("switch").disabled = busy || !p.downloaded || p.downloading;
+  $("pull").disabled = busy;
+  $("pull").textContent = p.downloaded ? "Pull again" : "Pull weights";
+  const chosen = +sel.value === 0 ? p.ctx : +sel.value === 1 ? p.long_ctx : +sel.value;
+  const notes = [];
+  if (p.downloading) notes.push("The weights are downloading; it can be switched to when that finishes.");
+  else if (!p.downloaded) notes.push("Not on disk yet: pull the weights first.");
+  if (chosen < 500000) notes.push("This is under the 500k floor.");
+  if (p.thinking !== "native") notes.push("No reasoning mode of its own: fable asks it to think in a <think> block; Claude Code gets no thinking from it.");
+  if (p.min_free_gb) notes.push("Needs " + p.min_free_gb + " GB free to start.");
+  $("profile-note").textContent = notes.join(" ");
+}
+
+function renderConnect() {
+  const via = $("via");
+  if (!via.childElementCount) {
+    // however this page was reached comes first, then every name the Spark says it answers to
+    const known = new Map((S.hosts || []).map(h => [h.host, h.note]));
+    known.set("localhost", "SSH tunnel");
+    const hosts = [...new Set([location.hostname, ...known.keys()])];
+    via.replaceChildren(...hosts.map(h => el("option", { value: h, textContent: known.has(h) ? h + "  (" + known.get(h) + ")" : h })));
+    via.onchange = renderConnect;
+    $("viaother").oninput = renderConnect;
+  }
+  const which = $("which");
+  if (!which.childElementCount) {
+    which.append(el("option", { value: "main", textContent: "main, port " + S.config.port }));
+    if (S.sidekick) which.append(el("option", { value: "sidekick", textContent: "sidekick, port " + S.sidekick.port }));
+    if (!S.main.up && S.sidekick && S.sidekick.up) which.value = "sidekick";
+    which.onchange = () => { renderConnect(); renderJob(); };
+  }
+  const typed = $("viaother").value.trim().replace(/^https?:\/\//, "").replace(/[\/:].*$/, "");
+  const c = S.config, host = typed || via.value, side = which.value === "sidekick", live = side ? S.sidekick : S.main;
+  const model = (live.up && live.models[0]) || (side ? c.sidekick_model : (currentProfile() || {}).served) || "MODEL";
+  const base = "http://" + host + ":" + live.port;
+  $("connect-note").textContent = live.up ? "" : "The " + which.value + " model is not serving yet, so these commands and tests will not work until it is. " + (side ? "Start the sidekick above." : S.sidekick && S.sidekick.up ? "The sidekick is up: choose it under Model to try things now." : "");
+  const vars = [
+    ["ANTHROPIC_BASE_URL", base], ["ANTHROPIC_AUTH_TOKEN", c.api_key], ["ANTHROPIC_MODEL", model],
+    ["ANTHROPIC_SMALL_FAST_MODEL", model], ["ANTHROPIC_DEFAULT_OPUS_MODEL", model], ["ANTHROPIC_DEFAULT_SONNET_MODEL", model],
+    ["ANTHROPIC_DEFAULT_HAIKU_MODEL", model], ["CLAUDE_CODE_SUBAGENT_MODEL", model], ["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "1"],
+    ["DISABLE_PROMPT_CACHING", "1"], ["DISABLE_TELEMETRY", "1"], ["API_TIMEOUT_MS", "3600000"], ["CLAUDE_CODE_MAX_OUTPUT_TOKENS", "16384"],
+  ];
+  const put = (id, text) => { if ($(id).textContent !== text) $(id).textContent = text; };  // leave a selection alone
+  put("claude", vars.map(([k, v]) => k + "=" + v + " \\").join("\n") + "\nclaude");
+  // fable installs itself from this page, so the command works on any machine that can reach the Spark
+  const panel = "http://" + host + (location.port ? ":" + location.port : "");
+  const fableCmd = "FABLE_BASE_URL=" + base + "/v1 \\\nFABLE_API_KEY=" + c.api_key + " \\\n" +
+    (S.fable && S.fable.archive ? 'uvx --from "fable-local @ ' + panel + S.fable.archive + '" fable' : "uv run --project agent fable");
+  put("fable", fableCmd);
+  for (const b of document.querySelectorAll('[data-act="messages"], [data-act="smoke"]')) { b.dataset.target = which.value; b.dataset.needs = which.value; }
+}
+
+function renderJob() {
+  const j = S.job, log = $("joblog");
+  const label = !j.name ? "idle" : j.running ? j.name + ": running" : j.name + (j.exit_code === 0 ? ": done" : ": failed (exit " + j.exit_code + ")");
+  $("job").replaceChildren(pill(label, !j.name ? "muted" : j.running ? "warn" : j.exit_code === 0 ? "ok" : "bad"));
+  $("cancel").hidden = !j.running;
+  if (j.log && log.textContent !== j.log) { log.textContent = j.log; log.scrollTop = log.scrollHeight; }
+  for (const b of document.querySelectorAll("[data-act]")) b.disabled = j.running || (b.dataset.needs && !(b.dataset.needs === "sidekick" ? S.sidekick : S.main).up);
+  $("gpu").textContent = S.gpu.length ? S.gpu.join("\n") : "(none)";
+}
+
+let lastUpdate = 0;
+function apply(state) {
+  S = state; lastUpdate = Date.now();
+  renderDownloads(); renderStatus(); renderProfiles(); renderConnect(); renderJob();
+  $("live").textContent = "live · " + new Date().toLocaleTimeString([], { hour12: false });
+  if ($("error").textContent === "panel is not answering") $("error").textContent = "";
+}
+async function refresh() {
+  try { apply(await api("/api/state")); } catch (e) { $("error").textContent = "panel is not answering"; $("live").textContent = "not connected"; }
+}
+// The server pushes a fresh state every second. EventSource reconnects by itself;
+// the timer below only polls when the stream has gone quiet.
+function listen() {
+  const es = new EventSource("/api/events");
+  es.onmessage = e => apply(JSON.parse(e.data));
+}
+
+for (const b of document.querySelectorAll("[data-act]")) b.onclick = () => act({ action: b.dataset.act, target: b.dataset.target });
+for (const b of document.querySelectorAll("[data-copy]")) b.onclick = async () => {
+  const text = $(b.dataset.copy).textContent;
+  try { await navigator.clipboard.writeText(text); } catch { const r = document.createRange(); r.selectNodeContents($(b.dataset.copy)); getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand("copy"); }
+  b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1200);
+};
+$("ctx").onchange = () => renderContext(false);
+$("switch").onclick = () => { const [backend, profile] = picked.split("/"); pickedByUser = false; act({ action: "switch", backend, profile, long: +$("ctx").value }); };
+$("pull").onclick = () => { const [backend, profile] = picked.split("/"); act({ action: "pull", backend, profile }); };
+$("cancel").onclick = async () => { await api("/api/cancel", {}); refresh(); };
+$("showlog").onclick = async () => {
+  const out = $("unitlog"); out.hidden = false;
+  try { out.textContent = (await api("/api/logs?unit=" + $("unit").value)).log; out.scrollTop = out.scrollHeight; } catch (e) { out.textContent = e.message; }
+};
+refresh(); if (!location.search.includes("poll")) listen(); setInterval(() => { if (Date.now() - lastUpdate > 6000) refresh(); }, 3000);
+</script>
+</body>
+</html>

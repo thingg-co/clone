@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clone: a coding agent on one DGX Spark</title>
+<meta name="description" content="A local coding agent on a DGX Spark: a model server with as much context as the box can hold, a terminal agent with tool calling, and what happened when six models were asked to find things in half a million tokens.">
+<meta property="og:title" content="clone: a coding agent on one DGX Spark">
+<meta property="og:description" content="A model server, a terminal agent, and measurements of which open models can still find things in half a million tokens.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="panel.png">
+<meta name="repo" content="https://github.com/thingg-co/clone">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%BD%3C/text%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f6f6f3; --card: #ffffff; --ink: #1c1d1f; --muted: #63666c; --line: #dcdcd6;
+  --accent: #2f5d50; --accent-ink: #ffffff; --ok: #2e7d4f; --bad: #b3372f; --code: #efefea;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #151617; --card: #1e2022; --ink: #e8e8e4; --muted: #9a9da3; --line: #33363a;
+    --accent: #6fb39c; --accent-ink: #10201b; --ok: #6cc08b; --bad: #ef7d74; --code: #17191a;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 0 20px 72px; }
+a { color: var(--accent); text-underline-offset: 3px; }
+header { padding: 72px 0 40px; }
+.mark { font-size: 56px; line-height: 1; }
+h1 { font-size: 44px; line-height: 1.1; margin: 14px 0 18px; letter-spacing: -0.02em; }
+.lead { font-size: 21px; line-height: 1.5; margin: 0 0 14px; max-width: 34em; }
+header p { margin: 0 0 14px; max-width: 38em; color: var(--muted); }
+.links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.links a { display: inline-block; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); text-decoration: none; font-weight: 600; font-size: 15px; }
+.links a.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+section { padding: 34px 0 6px; border-top: 1px solid var(--line); margin-top: 34px; }
+h2 { font-size: 26px; line-height: 1.2; margin: 0 0 16px; letter-spacing: -0.01em; }
+h3 { font-size: 17px; margin: 0 0 6px; }
+p { margin: 0 0 16px; }
+.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px 28px; margin: 22px 0 8px; }
+.parts p { margin: 0; color: var(--muted); font-size: 16px; }
+figure { margin: 30px 0 8px; }
+figure img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); }
+figcaption { color: var(--muted); font-size: 14px; margin-top: 10px; }
+.tablewrap { overflow-x: auto; margin: 22px -20px 22px; padding: 0 20px; }
+table { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 15px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th { text-align: left; font-size: 12.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 11px 14px; white-space: nowrap; }
+td { padding: 12px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+td.model b { display: block; }
+td.model span, td small { color: var(--muted); font-size: 13.5px; }
+td.num { white-space: nowrap; }
+.pass { color: var(--ok); font-weight: 600; }
+.fail { color: var(--bad); font-weight: 600; }
+code { font: 0.88em ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; overflow-x: auto; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 18px 0 20px; }
+pre .c { color: var(--muted); }
+blockquote { margin: 18px 0; padding: 2px 0 2px 18px; border-left: 3px solid var(--accent); color: var(--muted); }
+blockquote p { margin: 6px 0; }
+footer { border-top: 1px solid var(--line); margin-top: 48px; padding-top: 22px; color: var(--muted); font-size: 14.5px; }
+footer p { margin: 0 0 8px; }
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  header { padding: 44px 0 26px; }
+  h1 { font-size: 34px; }
+  .lead { font-size: 18.5px; }
+  h2 { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="mark" aria-hidden="true">👽</div>
+    <h1>clone</h1>
+    <p class="lead">A coding agent that runs on one DGX Spark: a model server with as much context as the box can hold, and <code>fable</code>, a terminal agent with tool calling that works the way Claude Code does.</p>
+    <p>It aims at three things at once. A context window of 500k tokens or more, thinking before the model acts, and tool calls that work. Everything lives in one directory on both machines.</p>
+    <p>It is not a frontier model. The open models that fit in 122 GiB are slower and less sharp than a hosted one, so most of the work here went into finding out which of them can be trusted with a long prompt.</p>
+    <div class="links">
+      <a class="primary" id="repo" hidden>Source on GitHub</a>
+      <a href="#measured">What was measured</a>
+      <a href="#run">Run it</a>
+    </div>
+  </header>
+
+  <section>
+    <h2>What is in it</h2>
+    <div class="parts">
+      <div>
+        <h3>The model server</h3>
+        <p>vLLM in NVIDIA's container on the Spark, with one profile per model: weights, window, parsers and memory share. When the window asked for does not fit in the cache, the launcher takes the largest one that does and says so.</p>
+      </div>
+      <div>
+        <h3>fable</h3>
+        <p>A terminal agent in Python. Shell, file read, write and edit, search, web fetch, a task list and read-only subagents, behind a permission check. Five thinking levels, translated into whatever each model family calls them.</p>
+      </div>
+      <div>
+        <h3>A control page</h3>
+        <p>Served from the Spark with the standard library. What is running, memory, downloads with a finish time, switching model and window, and the commands that connect Claude Code or fable from another machine.</p>
+      </div>
+    </div>
+    <figure>
+      <img src="panel.png" width="2080" height="1494" alt="The control page: Qwen3.8-Flash-Next serving a 524k-token window, memory use, and the table of model profiles with their windows, parsers and whether the weights are on disk.">
+      <figcaption>The control page on the Spark. Switching profile rewrites the configuration, reinstalls the service and restarts it.</figcaption>
+    </figure>
+  </section>
+
+  <section id="measured">
+    <h2>What was measured</h2>
+    <p>A long window is only worth having if the model can still find things in it. The acceptance test fills the prompt with numbered records, thousands of lines like this one:</p>
+    <pre>Record 9337: the access code for locker 9337 is 836244.</pre>
+    <p>It then asks for three of the codes, one near the start, one in the middle and one near the end, and wants them back through a tool call. A size passes when the call is made and all three codes are right. It is a harsh test. It is also what a long window is for.</p>
+    <p>Results from 14 October 2026, all on the same Spark, all with thinking on:</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Model</th><th>Window served</th><th>Decode</th><th>Recall, codes right out of three</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="model"><b>Qwen3.8-27B</b><span>dense, 22 GB</span></td>
+            <td>950k<br><small>stretched from 256k</small></td>
+            <td class="num">12 tok/s</td>
+            <td><span class="pass">3 at 97k, 245k and 507k</span></td>
+          </tr>
+          <tr>
+            <td class="model"><b>Qwen3.8-Flash-Next</b><span>125B, 6B active, 133 GB</span></td>
+            <td>524k<br><small>stretched from 256k</small></td>
+            <td class="num">49 tok/s</td>
+            <td><span class="pass">3 at 93k and 253k</span><br><span class="fail">2 at 411k, 505k and 516k</span></td>
+          </tr>
+          <tr>
+            <td class="model"><b>Nemotron 3 Super</b><span>120B, 12B active, 80 GB</span></td>
+            <td>1M<br><small>native</small></td>
+            <td class="num">16 tok/s</td>
+            <td><span class="fail">2 at 93k, 1 at 235k and 489k</span></td>
+          </tr>
+          <tr>
+            <td class="model"><b>Nemotron 3.5 Lightning</b><span>30B, 3B active, 22 GB</span></td>
+            <td>1M<br><small>native</small></td>
+            <td class="num">136 tok/s</td>
+            <td><span class="pass">3 at 102k</span><br><span class="fail">1 at 232k, 482k and 986k</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Every model in the table thinks, calls a tool and finishes the tool loop at the window listed. Recall is where they part ways, and how they fail matters as much as where. The Nemotron models return a code from the wrong part of the prompt. Flash-Next, past the length it was trained for, returns the record next door:</p>
+    <blockquote>
+      <p>Asked for locker 9337, it answered with the code for locker 9338.</p>
+      <p>Asked for locker 137, it answered with the code for locker 37, and quoted the line it believed it had read.</p>
+    </blockquote>
+    <p>The Qwen models are trained to 262,144 tokens, and their cards document a way to stretch that. What the stretch does depends on the model. The dense 27B stayed exact at twice its trained length. Flash-Next, which attends sparsely, loses its place. An older model, Qwen3-Coder-Next, stopped calling tools altogether. So a stretched window has to be tested on the model that will use it.</p>
+    <p>Where that leaves the three targets: Qwen3.8-27B is the only configuration that has been exact past 500k, and it is slow. Flash-Next is the model that suits the hardware, at 49 tokens a second, and it is exact inside 256k. Nothing tested so far is exact at a million.</p>
+  </section>
+
+  <section>
+    <h2>What the hardware is good for</h2>
+    <p>The Spark is sold as 128 GB and reports 121.7 GiB of unified memory at 273 GB/s. Two rules follow from those numbers.</p>
+    <p>Decode speed is roughly bandwidth divided by the bytes of weights read per token. A sparse model with a few billion active parameters runs well however large it is in total. A dense model reads all of itself for every token, which is why a 125B model with 6B active does 49 tokens a second here and a dense 27B does 12.</p>
+    <p>Context comes out of what the weights leave. The server takes a fixed share of the memory, loads the weights and gives the rest to its cache. A model with 93 GiB of weights has room for a few hundred thousand tokens whatever window it was trained for, and a model trained for a million tokens can still be a poor reader of them.</p>
+    <p>Long prompts also cost time. Flash-Next reads about 2,500 tokens a second, so half a million tokens take under four minutes the first time. The dense 27B needs 22 minutes for the same prompt. The server caches what it has read, and a request that extends the previous one only pays for the new part.</p>
+  </section>
+
+  <section id="run">
+    <h2>Run it</h2>
+    <p>You need a DGX Spark you can reach over SSH and a machine to work from. Nothing needs sudo, and nothing is installed outside the project directory.</p>
+<pre><span class="c"># on your own machine</span>
+make config          <span class="c"># config/spark.env with a fresh API key</span>
+make deploy          <span class="c"># copy the tree to the Spark</span>
+
+<span class="c"># on the Spark, in the tree</span>
+spark/bootstrap.sh   <span class="c"># tools, container image, weights, services, tool-call check</span>
+
+<span class="c"># back on your own machine</span>
+make panel           <span class="c"># the control page</span>
+make doctor          <span class="c"># context window, speed, thinking and tool calls</span>
+make agent           <span class="c"># fable in the current directory</span></pre>
+    <p>The control page prints one command for Claude Code and one for fable, each ready to paste on any machine that can reach the Spark. Before trusting a model with a long prompt, run the recall test against it:</p>
+<pre>python3 scripts/context-test.py --base-url http://127.0.0.1:8080/v1 --api-key KEY --sizes 100,250,500</pre>
+  </section>
+
+  <footer>
+    <p>Released under the <a href="https://polyformproject.org/licenses/noncommercial/1.0.0">PolyForm Noncommercial License 1.0.0</a>. Copyright 2026 thingg.co.</p>
+    <p>clone is an independent project. It is not affiliated with Anthropic, NVIDIA, Alibaba, Poolside or anyone else whose models and tools it mentions, and those names belong to their owners. The models, vLLM and llama.cpp are separate works under their own licenses.</p>
+  </footer>
+</main>
+<script>
+(function () {
+  var link = document.getElementById("repo");
+  var url = document.querySelector('meta[name="repo"]').content;
+  if (url) { link.href = url; link.hidden = false; }
+})();
+</script>
+</body>
+</html>

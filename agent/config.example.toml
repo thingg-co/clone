@@ -1,0 +1,34 @@
+# Agent settings. Copy to agent/config.toml, or to .fable.toml in a project,
+# or to ~/.config/fable/config.toml. Environment variables FABLE_<KEY> override
+# these, and command-line flags override everything.
+
+base_url = "http://localhost:8080/v1"   # through the tunnel; or http://omega.local:8080/v1 on the LAN
+api_key = "change-me"                   # API_KEY from config/spark.env
+model = ""                              # empty: first model the server lists
+backend = "auto"                        # auto | vllm | llama.cpp | ollama; auto asks the server which it is
+reasoning_effort = "high"               # off | low | medium | high | max; also --effort and /effort
+thinking = "auto"                       # auto | native | prompted | off. native: the model reasons itself (Qwen3.8,
+                                        # Laguna, Nemotron, gpt-oss). prompted: the agent asks for a <think> block.
+permission_mode = "ask"                 # ask | auto | readonly
+allowed_commands = ["uv run pytest", "pytest", "npm test", "make test", "cargo test", "go test"]
+max_tokens = 32768                      # per response, thinking included; clamped to what the window has left
+request_timeout = 3600                  # seconds of silence tolerated; a cold 1M-token prompt takes minutes to fill
+# max_tool_output_chars = 30000         # default: a tenth of the context window per tool result
+# context_window = 262144               # normally probed from the server
+min_context = 500000                    # complain when the server offers less than this
+compact_threshold = 0.75                # summarise history past this share of the window
+show_thinking = false
+send_reasoning_back = true              # keep the model's thinking in the history; false saves context
+max_iterations = 100                    # tool rounds per message
+bash_timeout = 120
+max_subagent_depth = 1
+
+# Route subagents to the small fast model on the second port:
+# subagent_base_url = "http://localhost:8081/v1"
+# subagent_model = "gpt-oss-20b"
+# subagent_api_key = "change-me"
+
+name = "Fable"
+system_prompt_extra = ""                # appended to the system prompt
+# temperature = 0.6                     # unset: the server uses the model's own generation_config
+# extra_body = { top_p = 0.95 }         # merged into every request

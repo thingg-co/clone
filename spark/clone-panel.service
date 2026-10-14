@@ -1,0 +1,17 @@
+# systemd user unit for the control page (spark/panel.py).
+[Unit]
+Description=clone control panel
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@ROOT@
+ExecStart=/usr/bin/python3 -I @ROOT@/spark/panel.py
+Restart=on-failure
+# restarting the page must not kill a download or model switch it started
+KillMode=process
+RestartSec=5
+Environment=PATH=/usr/local/cuda/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target
