@@ -22,7 +22,7 @@ NAME=vllm-main
 load_vllm_profile() {
     local key=$1 f="$ROOT/config/vllm/$1.env"
     [ -f "$f" ] || die "no vLLM profile $f (known: $(ls "$ROOT/config/vllm" | sed 's/\.env$//' | tr '\n' ' '))"
-    unset TITLE DETAIL HF_REPO EXTRA_REPOS SERVED_NAME MAX_LEN LONG_MAX_LEN ROPE_ORIG ROPE_STYLE TOOL_PARSER REASONING_PARSER REASONING_PLUGIN EFFORT_ALIAS KV_DTYPE MEM_UTIL MIN_FREE_GB DOCKER_ENV EXTRA_ARGS RUNNER
+    unset TITLE DETAIL HF_REPO EXTRA_REPOS SERVED_NAME MAX_LEN LONG_MAX_LEN ROPE_ORIG ROPE_STYLE TOOL_PARSER REASONING_PARSER REASONING_PLUGIN EFFORT_ALIAS KV_DTYPE MEM_UTIL MIN_FREE_GB DOCKER_ENV EXTRA_ARGS RUNNER PULL PREPARE
     set -a; . "$f"; set +a
     PROFILE_KEY=$key
 }
@@ -47,6 +47,10 @@ case "$cmd" in
     image) find_image ;;
     pull)
         load_vllm_profile "${2:-$VLLM_PROFILE}"
+        if [ -n "${PULL:-}" ]; then   # a model whose runner keeps its weights its own way
+            # shellcheck disable=SC2086
+            exec "$ROOT"/$PULL
+        fi
         command -v hf >/dev/null || die "hf CLI missing; run spark/bootstrap.sh"
         code=$(curl -s -o /dev/null -w '%{http_code}' "https://huggingface.co/api/models/$HF_REPO")
         [ "$code" = 200 ] || die "HF repo $HF_REPO returned HTTP $code; fix HF_REPO in config/vllm/$PROFILE_KEY.env"

@@ -33,7 +33,7 @@ note_for() {  # backend profile long: how it was served, for the results table
     local kv orig
     if [ "$1" = vllm ]; then
         kv=$(field vllm "$2" KV_DTYPE); orig=$(field vllm "$2" ROPE_ORIG)
-        case "$kv" in fp8*) kv="FP8 cache" ;; *) kv="16-bit cache" ;; esac
+        case "$kv" in fp8*) kv="FP8 cache" ;; nvfp4*) kv="FP4 cache" ;; *) kv="16-bit cache" ;; esac
         if [ "$3" != 0 ] && [ -n "$orig" ] && [ -n "$(field vllm "$2" LONG_MAX_LEN)" ]; then
             echo "vLLM, stretched from $((orig / 1024))k, $kv"
         else
@@ -87,6 +87,14 @@ for item in "$@"; do
     log "[$n/$#] $item: download"
     if [ "$backend" = vllm ]; then "$ROOT/spark/vllm.sh" pull "$key"; else "$ROOT/spark/pull-model.sh" "$key"; fi \
         || { warn "$item: download failed, skipping"; continue; }
+
+    prepare=$(field "$backend" "$key" PREPARE)
+    if [ -n "$prepare" ]; then   # a step that needs the memory to itself, such as repacking weights
+        log "[$n/$#] $item: stopping the server to run $prepare"
+        systemctl --user stop vllm.service llama-server.service 2>/dev/null || true
+        # shellcheck disable=SC2086
+        "$ROOT"/$prepare > "$LOG_DIR/bake-$key-prepare.log" 2>&1 || { warn "$item: $prepare failed, skipping"; continue; }
+    fi
 
     log "[$n/$#] $item: start"
     if ! serve "$backend" "$key" "$long"; then

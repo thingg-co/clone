@@ -110,6 +110,13 @@ pre.log { max-height: 320px; overflow-y: auto; white-space: pre-wrap; overflow-w
       <tbody id="results"></tbody>
     </table></div>
     <p class="note" id="results-note"></p>
+    <div id="checkers" hidden>
+      <div class="tablewrap" style="margin-top:12px"><table>
+        <thead><tr><th>checker</th><th>by size of the passage: code picked out of eight, claims judged right</th></tr></thead>
+        <tbody id="checker-rows"></tbody>
+      </table></div>
+      <p class="note">Decision models write no text, so they get the same records as multiple choice and as claims to judge, half of them true and half giving the code of a nearby or digit-swapped record.</p>
+    </div>
   </section>
 
   <section>
@@ -342,6 +349,13 @@ function renderResults() {
     el("td", { className: "steps" }, ...m.recall.map(r => el("span", { className: r.right === r.of ? "ok" : r.right ? "warn" : "bad", textContent: tokens(r.tokens) + " " + r.right + "/" + r.of }))),
     yes(m.thinking), yes(m.tool_loop), el("td", { textContent: rate(m.decode_tps) }), el("td", { textContent: rate(m.prefill_tps) }))));
   $("results-note").textContent = (R.test ? R.test + " " : "") + "Ranked by the largest prompt answered exactly with every smaller one exact too, then by the share of codes right, then by decode speed. Read-in is the speed of the first recall prompt.";
+  const ch = R.checkers || [];
+  $("checkers").hidden = !ch.length;
+  $("checker-rows").replaceChildren(...ch.map(c => el("tr", {},
+    el("td", { className: "name" }, c.title || c.label, el("small", { textContent: c.detail || "" })),
+    el("td", { className: "steps" }, ...(c.steps || []).map(s => el("span", {
+      className: s.picks_right === s.picks_of && s.claims_right === s.claims_of ? "ok" : s.picks_right + s.claims_right ? "warn" : "bad",
+      textContent: tokens(s.tokens) + ": " + s.picks_right + "/" + s.picks_of + ", " + s.claims_right + "/" + s.claims_of + (s.error ? " (failed)" : "") }))))));
   $("bake").hidden = !b;
   if (b) {
     const since = new Date(b.since * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });

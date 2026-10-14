@@ -195,7 +195,11 @@ def downloads(profs: list, env: dict) -> list:
         if not (p["downloading"] or waiting):
             SAMPLES.pop(p["backend"] + "/" + p["key"], None)
             continue
-        if p["backend"] == "vllm":
+        if p["backend"] == "vllm" and p.get("own_dir"):   # a runner that downloads into models/<key>
+            d = models / p["key"]
+            done = bytes_on_disk([*d.rglob("*.safetensors"), *d.rglob("*.incomplete")]) if d.is_dir() else 0
+            total = repo_total(p["repo"])
+        elif p["backend"] == "vllm":
             blobs = models / "hf-cache" / "hub" / ("models--" + p["repo"].replace("/", "--")) / "blobs"
             done = bytes_on_disk(blobs.iterdir()) if blobs.is_dir() else 0
             total = repo_total(p["repo"])
@@ -235,10 +239,11 @@ def profiles(env: dict) -> list:
         out.append({
             "backend": "vllm", "key": f.stem, "served": p.get("SERVED_NAME", f.stem), "repo": repo,
             "ctx": to_int(p.get("MAX_LEN"), 0), "long_ctx": to_int(p.get("LONG_MAX_LEN")),
-            "native_ctx": to_int(p.get("ROPE_ORIG")), "runner": bool(p.get("RUNNER")),
+            "native_ctx": to_int(p.get("ROPE_ORIG")), "runner": bool(p.get("RUNNER")), "own_dir": bool(p.get("PULL")),
             "thinking": "native" if p.get("REASONING_PARSER") else "prompted",
             "tools": "vLLM parser " + p["TOOL_PARSER"] if p.get("TOOL_PARSER") else "none", "min_free_gb": to_int(p.get("MIN_FREE_GB"), 0),
-            "downloaded": hf_complete(models / "hf-cache" / "hub" / ("models--" + repo.replace("/", "--"))),
+            "downloaded": (any((models / f.stem).rglob("*.safetensors")) if p.get("PULL")   # kept by its runner, not in the cache
+                           else hf_complete(models / "hf-cache" / "hub" / ("models--" + repo.replace("/", "--")))),
             "downloading": fetching(repo),
         })
     for f in sorted((ROOT / "config" / "models").glob("*.env")):
@@ -321,6 +326,7 @@ def results(published: Path | None = None, runs: Path | None = None) -> dict:
     except (OSError, ValueError):
         base = {}
     by_label = {m["label"]: m for m in base.get("models", []) if m.get("label")}
+    checkers = {m["label"]: m for m in base.get("checkers", []) if m.get("label")}
     try:
         lines = (runs or ROOT / "run" / "results.jsonl").read_text().splitlines()
     except OSError:
@@ -332,13 +338,16 @@ def results(published: Path | None = None, runs: Path | None = None) -> dict:
             continue
         if isinstance(m, dict) and m.get("kind") == "bench" and m.get("label"):
             by_label[m["label"]] = m
+        elif isinstance(m, dict) and m.get("kind") == "checker" and m.get("label"):  # decision models, scripts/clef-test.py
+            checkers[m["label"]] = m
     models = []
     for m in by_label.values():
         rec = [r for r in m.get("recall") or [] if isinstance(r, dict)]
         right, of = sum(r.get("right", 0) for r in rec), sum(r.get("of", 0) for r in rec)
         models.append({**m, "recall": sorted(rec, key=lambda r: r.get("tokens", 0)), "reach": reach(rec), "right": right, "of": of})
     models.sort(key=lambda m: (-m["reach"], -(m["right"] / m["of"] if m["of"] else 0), -(m.get("decode_tps") or 0)))
-    return {"updated": base.get("updated"), "machine": base.get("machine"), "test": base.get("test"), "models": models}
+    return {"updated": base.get("updated"), "machine": base.get("machine"), "test": base.get("test"), "models": models,
+            "checkers": list(checkers.values())}
 
 
 def bake_state():

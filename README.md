@@ -114,6 +114,7 @@ memory share. `VLLM_PROFILE` and `VLLM_LONG` in `config/spark.env` pick one.
 | `qwen3.8-flash-next` | fastest and strongest coder, served through a patched vLLM (below) | `VLLM_LONG=0` asks for 500k, `1` for the most that fits |
 | `qwen3.6-35b-a3b` | 35B with 3B active, small and fast | 256k native, 1.01M stretched |
 | `qwen3.5-122b`, `qwen3.5-122b-fp8` | 122B with 10B active, with a 16-bit or an FP8 cache | 256k native, 500k or 1.01M stretched |
+| `deepseek-v4-flash-spark` | DeepSeek V4 Flash in 0xSero's single-Spark build: pruned experts, 3-bit EXL3, DSpark draft, through a patched vLLM (below) | 262k at most |
 | `laguna-s-2.1` | Poolside's 118B coding model, trained to 1M | what its 93 GiB of weights leave room for |
 | `nemotron-3-super`, `nemotron-3.5-lightning` | native 1M windows that fail the recall test | 1M |
 | `gpt-oss-120b` | 128k | 128k |
@@ -123,9 +124,11 @@ llama.cpp profiles in `config/models/`:
 | profile | what it is | windows |
 |---|---|---|
 | `deepseek-v4-flash` | DeepSeek V4 Flash, 284B with 13B active, 3-bit GGUF | trained to 1M; the largest that fits |
+| `deepseek-v4-flash-q2`, `deepseek-v4-flash-dspark` | the same at 2 bits, alone and with DeepSeek's DSpark draft model for faster decoding | the largest that fits |
 | `glm-5.3-flash` | GLM-5.3-Flash, 320B with 18B active, 2-bit GGUF | trained to 1M; the largest that fits |
 | `kimi-linear-48b` | Kimi Linear 48B with 3B active, 8-bit, no thinking mode | trained to 1M; the largest that fits |
 | `seed-oss-36b` | Seed-OSS-36B, dense, 8-bit weights and cache | trained to 512k; the largest that fits |
+| `clef`, `clef-flash` | Cloudflare's decision models: typed answers at `/v1/systemone`, no text | passages up to 128k |
 | `gpt-oss-120b`, `gpt-oss-20b` | OpenAI's open models | 128k |
 
 `CTX=fit` in a llama.cpp profile leaves the window to llama.cpp: it starts
@@ -151,6 +154,13 @@ Three ways to serve, one port:
   patches vLLM 0.31 to read the 48 GiB n-gram table from the NVMe. It sets
   itself up on first use: the image build and checkpoint preparation take
   about twenty minutes once.
+- DeepSeek V4 Flash through `spark/deepseek-spark.sh`, which runs
+  [0xSero's build](https://github.com/0xSero/deepseek-v4-flash-0731-spark-sparkinfer)
+  for one Spark (Apache-2.0, weights MIT) from its image, pinned by digest.
+  The image would download and repack the weights at its first start; here
+  `vllm.sh pull` fetches them and the bake-off repacks them right before the
+  model's turn, so a start only loads. A profile can name such steps with
+  `PULL` and `PREPARE`.
 - llama.cpp built from source (`spark/serve.sh`, GGUF profiles in
   `config/models/`). This is how models whose release weights are larger
   than the machine run here at all, at 2 to 3 bits per weight. It reads each
@@ -168,6 +178,7 @@ Three ways to serve, one port:
     spark/pull-model.sh        GGUF download into models/<key>/ (checks the repo first)
     spark/vllm.sh              pull | serve | switch | install | stop | logs | image
     spark/flash-next.sh        Qwen3.8-Flash-Next through the pinned third-party recipe
+    spark/deepseek-spark.sh    DeepSeek V4 Flash through 0xSero's single-Spark build
     spark/serve.sh             llama-server for a profile (main, sidekick, or any key)
     spark/service.sh           systemd user units for the llama.cpp instances
     spark/panel.py             control page: status, profile and context switch, connection strings
@@ -230,7 +241,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.3.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.4.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -380,10 +391,11 @@ licenses.
   at 507k; the cache that fits at that precision (950k tokens) has no headroom
   over a prompt that fills the window, so that profile stops at 900k, and its
   900k step is queued.
-- Running the bake-off: DeepSeek V4 Flash (3-bit, 2-bit, and 2-bit with its
-  DSpark draft), GLM-5.3-Flash, Kimi Linear, Seed-OSS-36B, Qwen3.6-35B-A3B and
-  Qwen3.5-122B are queued on the Spark, then the models measured before, again
-  with `scripts/bench.py`. Clef and Clef-Flash get `scripts/clef-test.py`, the
+- Running the bake-off: DeepSeek V4 Flash (3-bit, 2-bit, 2-bit with its
+  DSpark draft, and 0xSero's single-Spark build), GLM-5.3-Flash, Kimi Linear,
+  Seed-OSS-36B, Qwen3.6-35B-A3B and Qwen3.5-122B are queued on the Spark, then
+  the models measured before, Flash-Next included, again with
+  `scripts/bench.py`. Clef and Clef-Flash get `scripts/clef-test.py`, the
   same records as multiple choice and as claims to check.
   Larger models from the same labs (DeepSeek V4.1 Flash at 510 GB, MiniMax
   M3, Kimi K3, GLM-5.3) have no build that fits one Spark, and MiMo-V2.6-Flash

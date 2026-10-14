@@ -100,6 +100,8 @@ def main() -> int:
     base = json.loads(published.read_text()) if published.is_file() else {}
     base["updated"] = time.strftime("%Y-%m-%d")
     base["models"] = [{k: m[k] for k in FIELDS if k in m} for m in merged["models"]]
+    if merged.get("checkers"):
+        base["checkers"] = merged["checkers"]
     published.write_text(json.dumps(base, indent=1) + "\n")
 
     ok = splice(ROOT / "docs" / "index.html", rows(merged["models"]), " " * 10)
