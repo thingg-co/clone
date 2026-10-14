@@ -133,7 +133,13 @@ def recall(args, model: str, sizes: list) -> list:
                "--sizes", ",".join(map(str, sizes)), "--timeout", str(args.timeout), "--record", tmp.name, "--label", args.label, "--verbose"]
         subprocess.run(cmd, check=False)
         rows = [json.loads(line) for line in Path(tmp.name).read_text().splitlines() if line.strip()]
-    return [{"tokens": r["prompt_tokens"], "right": r["right"], "of": r["of"], "tool_call": r["tool_call"], "seconds": r["seconds"]} for r in rows]
+    return [step(r) for r in rows]
+
+
+def step(r: dict) -> dict:
+    """One recall step as results.jsonl keeps it, from a context-test.py --record line."""
+    return {"tokens": r["prompt_tokens"], "right": r["right"], "of": r["of"], "tool_call": r["tool_call"], "seconds": r["seconds"],
+            "finish": r.get("finish"), "written": r.get("written")}
 
 
 def main() -> int:
@@ -172,8 +178,7 @@ def main() -> int:
 
     if args.recall_from:
         rows = [json.loads(line) for line in Path(args.recall_from).read_text().splitlines() if line.strip()]
-        record["recall"] = [{"tokens": r["prompt_tokens"], "right": r["right"], "of": r["of"], "tool_call": r["tool_call"], "seconds": r["seconds"]}
-                            for r in rows if r.get("label") == args.label]
+        record["recall"] = [step(r) for r in rows if r.get("label") == args.label]
     else:
         sizes = [int(s) for s in args.sizes.split(",")] if args.sizes else ladder(window)
         record["recall"] = recall(args, model, sizes)

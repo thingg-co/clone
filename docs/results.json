@@ -79,6 +79,94 @@
    "date": "2026-10-14"
   },
   {
+   "label": "deepseek-v4-flash",
+   "title": "DeepSeek V4 Flash",
+   "detail": "284B, 13B active, 3-bit GGUF, 104 GB",
+   "note": "llama.cpp, 16-bit cache",
+   "model": "deepseek-v4-flash",
+   "window": 991232,
+   "decode_tps": 16.3,
+   "prefill_tps": 300,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 61402,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 205
+    },
+    {
+     "tokens": 255064,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 841
+    },
+    {
+     "tokens": 501574,
+     "right": 0,
+     "of": 3,
+     "tool_call": false,
+     "seconds": 1888
+    },
+    {
+     "tokens": 969772,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 4311
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
+   "label": "qwen3.6-35b-a3b",
+   "title": "Qwen3.6-35B-A3B",
+   "detail": "35B, 3B active, NVFP4, 23 GB",
+   "note": "vLLM, stretched from 256k, 16-bit cache",
+   "model": "qwen3.6-35b-a3b",
+   "window": 1010000,
+   "decode_tps": 77.3,
+   "prefill_tps": 2897,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 92710,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 32
+    },
+    {
+     "tokens": 253171,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 113
+    },
+    {
+     "tokens": 519125,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 316
+    },
+    {
+     "tokens": 1004586,
+     "right": 1,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 1029
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
    "label": "qwen3.8-flash-next",
    "title": "Qwen3.8-Flash-Next",
    "detail": "125B, 6B active, NVFP4, 133 GB",

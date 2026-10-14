@@ -59,10 +59,12 @@ this Spark, with thinking on where the model has it:
 |---|---|---|---|---|---|---|---|
 | 1 | Qwen3.8-27B, FP8 cache (dense 27B, NVFP4, 22 GB) | 1.01M, vLLM, stretched from 256k, FP8 cache | 519k | 93k 3/3, 253k 3/3, 519k 3/3, 986k 2/3 | yes | 12 tok/s | 918 tok/s |
 | 2 | Qwen3.8-27B, 16-bit cache (dense 27B, NVFP4, 22 GB) | 950k, stretched from 256k, 16-bit cache | 507k | 97k 3/3, 245k 3/3, 507k 3/3 | yes | 12 tok/s | 920 tok/s |
-| 3 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
-| 4 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
-| 5 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
-| 6 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
+| 3 | DeepSeek V4 Flash (284B, 13B active, 3-bit GGUF, 104 GB) | 991k, llama.cpp, 16-bit cache | 255k | 61k 3/3, 255k 3/3, 502k 0/3, 970k 2/3 | yes | 16 tok/s | 300 tok/s |
+| 4 | Qwen3.6-35B-A3B (35B, 3B active, NVFP4, 23 GB) | 1.01M, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 519k 2/3, 1M 1/3 | yes | 77 tok/s | 2,897 tok/s |
+| 5 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
+| 6 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
+| 7 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
+| 8 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
 <!-- results:end -->
 
 How they fail matters as much as where. The Nemotron models return a code
@@ -85,6 +87,8 @@ to be tested each time:
 - Qwen3.8-Flash-Next attends sparsely and loses its place past the trained
   length. A factor of 2 with a 524k window does better than a factor of 4 with
   558k (2/3 against 0/3 at about 517k). Neither is exact.
+- Qwen3.6-35B-A3B, small and fast at 77 tok/s, stayed exact at 253k with a
+  factor of 4, then got 2/3 at 519k and 1/3 at 1M.
 - Qwen3-Coder-Next, an older model whose card only claims 256k, stopped
   calling tools altogether at a factor of 4. It is not in the table.
 
@@ -92,6 +96,10 @@ DeepSeek V4 Flash, GLM-5.3-Flash and Kimi Linear are trained to 1M, and most
 of their layers keep a compressed or linear cache, so a full window costs a
 few GiB. The first two only fit this box at 2 to 3 bits per weight, through
 llama.cpp, which is a harsher cut than the 4-bit builds the rest run at.
+DeepSeek at 3 bits was exact to 255k. At 502k it wrote down the wrong code
+for the middle locker while thinking, started to doubt its lookups and never
+called the tool. At 970k it got two of three, giving locker 26499's code for
+locker 26995, after 72 minutes of reading.
 
 Long prompts cost time. Flash-Next reads about 2,500 tok/s, so a cold 500k
 prompt takes under four minutes. The dense 27B reads 900 tok/s for the first
@@ -241,7 +249,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.5.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.6.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -391,11 +399,11 @@ licenses.
   at 507k; the cache that fits at that precision (950k tokens) has no headroom
   over a prompt that fills the window, so that profile stops at 900k, and its
   900k step is queued.
-- Running the bake-off: DeepSeek V4 Flash (3-bit, 2-bit, 2-bit with its
-  DSpark draft, and 0xSero's single-Spark build), GLM-5.3-Flash, Kimi Linear,
-  Seed-OSS-36B, Qwen3.6-35B-A3B and Qwen3.5-122B are queued on the Spark, then
-  the models measured before, Flash-Next included, again with
-  `scripts/bench.py`. Clef and Clef-Flash get `scripts/clef-test.py`, the
+- Running the bake-off: Qwen3.5-122B (500k with a 16-bit cache, 1M with
+  FP8), DeepSeek V4 Flash (2-bit, 2-bit with its DSpark draft, and 0xSero's
+  single-Spark build), GLM-5.3-Flash, Kimi Linear and Seed-OSS-36B are queued
+  on the Spark, then the models measured before, Flash-Next included, again
+  with `scripts/bench.py`. Clef and Clef-Flash get `scripts/clef-test.py`, the
   same records as multiple choice and as claims to check.
   Larger models from the same labs (DeepSeek V4.1 Flash at 510 GB, MiniMax
   M3, Kimi K3, GLM-5.3) have no build that fits one Spark, and MiMo-V2.6-Flash

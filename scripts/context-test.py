@@ -100,6 +100,8 @@ def main() -> int:
             continue
         per_record = d["usage"]["prompt_tokens"] / n
         calls = d["choices"][0]["message"].get("tool_calls") or []
+        # "length" means the answer ran into max_tokens, often while still thinking
+        finish, written = d["choices"][0].get("finish_reason"), d["usage"].get("completion_tokens")
         try:
             got = json.loads(calls[0]["function"]["arguments"]).get("codes") if calls else None
         except (ValueError, AttributeError):
@@ -111,7 +113,7 @@ def main() -> int:
         print(f"{d['usage']['prompt_tokens']:>9,} prompt tokens  {seconds:6.0f}s  tool call {'yes' if calls else 'NO'}  recall {right}/3  ({where})", flush=True)
         if args.verbose:
             msg = d["choices"][0]["message"]
-            print(f"            asked {asks}  want {want}  got {got}")
+            print(f"            asked {asks}  want {want}  got {got}  (stopped: {finish}, {written} tokens written)")
             print(f"            raw arguments: {[c['function'].get('arguments', '')[:200] for c in calls] or (msg.get('content') or '')[:200]!r}")
             print(f"            reasoning: {(msg.get('reasoning_content') or msg.get('reasoning') or '')[:400]!r}", flush=True)
         if args.record:  # one JSON line per size, for the control page
@@ -119,6 +121,7 @@ def main() -> int:
                 fh.write(json.dumps({
                     "date": time.strftime("%Y-%m-%d"), "label": args.label or model, "model": model, "window": window,
                     "prompt_tokens": d["usage"]["prompt_tokens"], "right": right, "of": 3, "tool_call": bool(calls), "seconds": round(seconds),
+                    "finish": finish, "written": written,
                 }) + "\n")
         failed = failed or right != 3
     return 1 if failed else 0
