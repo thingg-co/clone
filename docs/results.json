@@ -478,6 +478,31 @@
    "date": "2026-10-14"
   },
   {
+   "label": "deepseek-v4-flash-dspark",
+   "title": "DeepSeek V4 Flash, 2-bit with DSpark",
+   "detail": "284B, 13B active, 2-bit GGUF and an 8-bit draft, 108 GB",
+   "note": "llama.cpp, 16-bit cache, reasoning effort max",
+   "model": "deepseek-v4-flash-dspark",
+   "window": 131072,
+   "decode_tps": 43.7,
+   "prefill_tps": 326,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 55176,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 169,
+     "finish": "tool_calls",
+     "written": 171
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
    "label": "laguna-s-2.1",
    "title": "Laguna S 2.1",
    "detail": "118B, 8B active, NVFP4, 100 GB",
@@ -535,6 +560,67 @@
      "tokens": 489078,
      "right": 1,
      "of": 3
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
+   "label": "nemotron-puzzle-75b",
+   "title": "Nemotron-Labs-3 Puzzle 75B",
+   "detail": "75B, 9B active, NVFP4, 54 GB",
+   "note": "vLLM, 16-bit cache",
+   "model": "nemotron-puzzle-75b",
+   "window": 1000000,
+   "decode_tps": 20.0,
+   "prefill_tps": 1565,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 89211,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 57,
+     "finish": "tool_calls",
+     "written": 494
+    },
+    {
+     "tokens": 253349,
+     "right": 1,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 110,
+     "finish": "tool_calls",
+     "written": 315
+    },
+    {
+     "tokens": 520550,
+     "right": 1,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 261,
+     "finish": "tool_calls",
+     "written": 340
+    },
+    {
+     "tokens": 759615,
+     "right": 0,
+     "of": 3,
+     "tool_call": false,
+     "seconds": 2423,
+     "finish": "length",
+     "written": 32768
+    },
+    {
+     "tokens": 949903,
+     "right": 0,
+     "of": 3,
+     "tool_call": false,
+     "seconds": 318,
+     "finish": "stop",
+     "written": 23
     }
    ],
    "date": "2026-10-14"

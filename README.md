@@ -74,16 +74,24 @@ has it:
 | 8 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
 | 9 | Qwen3.6-35B-A3B (35B, 3B active, NVFP4, 23 GB) | 1.01M, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 519k 2/3, 1M 1/3 | yes | 77 tok/s | 2,897 tok/s |
 | 10 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
-| 11 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
-| 12 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
+| 11 | DeepSeek V4 Flash, 2-bit with DSpark (284B, 13B active, 2-bit GGUF and an 8-bit draft, 108 GB) | 131k, llama.cpp, 16-bit cache, reasoning effort max | 55k | 55k 3/3 | yes | 44 tok/s | 326 tok/s |
+| 12 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
+| 13 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
+| 14 | Nemotron-Labs-3 Puzzle 75B (75B, 9B active, NVFP4, 54 GB) | 1M, vLLM, 16-bit cache | none | 89k 2/3, 253k 1/3, 521k 1/3, 760k 0/3, 950k 0/3 | yes | 20 tok/s | 1,565 tok/s |
 <!-- results:end -->
 
 How they fail matters as much as where. The Nemotron models return a code
-from the wrong part of the prompt. Flash-Next past its trained length returns
-the neighbouring record: asked for locker 9337 it gave locker 9338's code, and
-for locker 137 it gave locker 37's, each time quoting the line it believed it
-had read. An agent that is nearly right about what it read is worse than a
-slow one.
+from the wrong part of the prompt. Nemotron Puzzle 75B, which NVIDIA cut down
+from Super and distilled at long context, mixes up record numbers that share
+digits: it gave locker 2998's code for locker 3298 at 89k, locker 961's for
+locker 9611 at 253k and locker 1917's for locker 19167 at 521k. At 760k it
+went looking for locker 13966, found record 1396 and searched until its
+32,768 tokens ran out. At 950k it wrote the first code and then the other
+two locker numbers as if they were codes, and stopped without calling the
+tool. Flash-Next past its trained length returns the neighbouring record:
+asked for locker 9337 it gave locker 9338's code, and for locker 137 it gave
+locker 37's, each time quoting the line it believed it had read. An agent
+that is nearly right about what it read is worse than a slow one.
 
 Every Qwen window past 256k is stretched. The models are trained to 262,144
 tokens and their cards document YaRN for more, which rescales positions for
@@ -137,6 +145,13 @@ window, decoded at 16 tok/s and read 460 tok/s. It was exact to 501k and got
 two of three at 751k and at 985k. Both wrong codes came from far off in the
 prompt: locker 12503's for locker 20909, and locker 11427's for locker 27428.
 
+DSpark, DeepSeek's draft model, more than doubles decode speed: the 2-bit
+build with it decoded at 44 tok/s against 20 without, and the main model
+accepted 90 to 95 percent of the drafted tokens. The answers are the main
+model's, and it got all three codes at 55k. The draft's 11 GB comes out of
+the cache, though, and only a 131k window fit, so on this box the profile is
+no use past about 90k.
+
 Long prompts cost time. Flash-Next reads about 2,500 tok/s, so a cold 500k
 prompt takes under four minutes. The dense 27B reads 900 tok/s for the first
 100k and under 300 past 250k, and the same prompt takes 22 minutes. The
@@ -169,7 +184,7 @@ llama.cpp profiles in `config/models/`:
 | profile | what it is | windows |
 |---|---|---|
 | `deepseek-v4-flash` | DeepSeek V4 Flash, 284B with 13B active, 3-bit GGUF | trained to 1M; the largest that fits |
-| `deepseek-v4-flash-q2`, `deepseek-v4-flash-dspark` | the same at 2 bits, alone and with DeepSeek's DSpark draft model for faster decoding | the largest that fits |
+| `deepseek-v4-flash-q2`, `deepseek-v4-flash-dspark` | the same at 2 bits, alone and with DeepSeek's DSpark draft model for faster decoding | the largest that fits: 1M alone, 131k with the draft |
 | `deepseek-v4-flash-reap150`, `deepseek-v4-flash-reap200` | the same with experts pruned to 150B (in DeepSeek's own FP4, 85 GB) or 200B (3-bit, 93 GB) | the largest that fits |
 | `glm-5.3-flash` | GLM-5.3-Flash, 320B with 18B active, 2-bit GGUF | trained to 1M; the largest that fits |
 | `glm-5.3-flash-reap-coder` | the same pruned to 144 experts and tuned on coding sessions, 4-bit | the largest that fits |
@@ -302,7 +317,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.15.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.16.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -457,9 +472,8 @@ licenses.
   16-bit cache that model passed at 507k; the cache that fits at that
   precision (950k tokens) has no headroom over a prompt that fills the
   window, so that profile stops at 900k, and its 900k step is queued.
-- Running the bake-off: DeepSeek V4 Flash (2-bit with its DSpark draft,
-  pruned to 200B, and 0xSero's single-Spark build),
-  Nemotron Puzzle 75B, GLM-5.3-Flash (2-bit, and
+- Running the bake-off: DeepSeek V4 Flash (pruned to 200B, and 0xSero's
+  single-Spark build), GLM-5.3-Flash (2-bit, and
   pruned at 4-bit), MiMo-V2.6-Flash pruned, Kimi Linear, Seed-OSS-36B,
   Nemotron-Cascade-2, dots3-note and K2-Horizon MoVA are queued on the Spark,
   then the models measured before, Flash-Next included, again with
