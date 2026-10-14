@@ -144,7 +144,9 @@ def repo_total(repo: str, include: str = "*"):
     try:
         with urllib.request.urlopen(f"https://huggingface.co/api/models/{repo}/tree/main?recursive=true", timeout=6) as r:
             items = json.load(r)
-        TOTALS[k] = sum(i.get("size", 0) for i in items if i.get("type") == "file" and fnmatch.fnmatch(i["path"].split("/")[-1], include))
+        pats = include.split() or ["*"]
+        TOTALS[k] = sum(i.get("size", 0) for i in items
+                        if i.get("type") == "file" and any(fnmatch.fnmatch(i["path"].split("/")[-1], p) for p in pats))
         return TOTALS[k]
     except Exception:
         TOTALS[k] = (None, time.time())
@@ -198,7 +200,7 @@ def downloads(profs: list, env: dict) -> list:
             done = bytes_on_disk(blobs.iterdir()) if blobs.is_dir() else 0
             total = repo_total(p["repo"])
         else:
-            d = models / p["key"]
+            d = models / p["dir"]
             done = bytes_on_disk([*d.rglob("*.gguf"), *d.rglob("*.incomplete")]) if d.is_dir() else 0
             total = repo_total(p["repo"], read_env(ROOT / "config" / "models" / (p["key"] + ".env")).get("HF_INCLUDE", "*"))
         hist = SAMPLES.setdefault(p["backend"] + "/" + p["key"], [])
@@ -241,13 +243,14 @@ def profiles(env: dict) -> list:
         })
     for f in sorted((ROOT / "config" / "models").glob("*.env")):
         p = read_env(f)
-        d = models / f.stem
+        d = models / (p.get("MODEL_DIR") or f.stem)
+        pattern = p.get("GGUF_MATCH", "").lower()
         out.append({
-            "backend": "llama", "key": f.stem, "served": p.get("ALIAS", f.stem), "repo": p.get("HF_REPO", ""),
+            "backend": "llama", "key": f.stem, "dir": d.name, "served": p.get("ALIAS", f.stem), "repo": p.get("HF_REPO", ""),
             "ctx": to_int(p.get("CTX"), 0), "long_ctx": None, "ctx_fit": p.get("CTX") == "fit",
             "thinking": "native" if re.search(r"gpt-oss|glm", f.stem) or "--reasoning on" in p.get("EXTRA_ARGS", "") else "prompted",
             "tools": "set by the model's template", "min_free_gb": to_int(p.get("MIN_FREE_GB"), 0),
-            "downloaded": d.is_dir() and any(d.rglob("*.gguf")),
+            "downloaded": d.is_dir() and any(pattern in str(g).lower() for g in d.rglob("*.gguf")),
             "downloading": fetching(p.get("HF_REPO", "")),
         })
     return out

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Download a model profile's GGUF files into $MODELS_DIR/<key>.
+# Download a model profile's GGUF files into $MODELS_DIR/<key>, or $MODELS_DIR/<MODEL_DIR>
+# when profiles share weights. HF_INCLUDE may hold several patterns, separated by spaces.
 # Resumable and idempotent: rerun it after an interruption.
 #
 #   spark/pull-model.sh gpt-oss-120b
@@ -19,14 +20,15 @@ for key in "${keys[@]}"; do
     # size of what we are about to fetch, from the repo tree listing
     gb=$(curl -s "https://huggingface.co/api/models/$HF_REPO/tree/main?recursive=true" | python3 -I -c '
 import sys, json, fnmatch
-pat = sys.argv[1]
+pats = sys.argv[1].split()
 items = json.load(sys.stdin)
-tot = sum(i.get("size", 0) for i in items if i.get("type") == "file" and fnmatch.fnmatch(i["path"].split("/")[-1], pat))
+tot = sum(i.get("size", 0) for i in items if i.get("type") == "file" and any(fnmatch.fnmatch(i["path"].split("/")[-1], p) for p in pats))
 print(f"{tot/1e9:.1f}")' "$HF_INCLUDE" 2>/dev/null || echo "?")
-    dest="$MODELS_DIR/$key"
+    dest="$MODELS_DIR/${MODEL_DIR:-$key}"
     mkdir -p "$dest"
     log "$key: $HF_REPO ($HF_INCLUDE, ~${gb} GB) -> $dest"
-    hf download "$HF_REPO" --include "$HF_INCLUDE" --local-dir "$dest"
+    read -ra pats <<< "$HF_INCLUDE"
+    hf download "$HF_REPO" --include "${pats[@]}" --local-dir "$dest"
     gguf=$("$ROOT/spark/resolve-gguf.sh" "$key")
     log "$key ready: $gguf"
 done

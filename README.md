@@ -57,11 +57,12 @@ this Spark, with thinking on where the model has it:
 <!-- results:start -->
 | | model | window served | exact up to | codes right, by prompt size | thinks, tools | decode | read-in |
 |---|---|---|---|---|---|---|---|
-| 1 | Qwen3.8-27B, 16-bit cache (dense 27B, NVFP4, 22 GB) | 950k, stretched from 256k, 16-bit cache | 507k | 97k 3/3, 245k 3/3, 507k 3/3 | yes | 12 tok/s | 920 tok/s |
-| 2 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
-| 3 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
-| 4 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
-| 5 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
+| 1 | Qwen3.8-27B, FP8 cache (dense 27B, NVFP4, 22 GB) | 1.01M, vLLM, stretched from 256k, FP8 cache | 519k | 93k 3/3, 253k 3/3, 519k 3/3, 986k 2/3 | yes | 12 tok/s | 918 tok/s |
+| 2 | Qwen3.8-27B, 16-bit cache (dense 27B, NVFP4, 22 GB) | 950k, stretched from 256k, 16-bit cache | 507k | 97k 3/3, 245k 3/3, 507k 3/3 | yes | 12 tok/s | 920 tok/s |
+| 3 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
+| 4 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
+| 5 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
+| 6 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
 <!-- results:end -->
 
 How they fail matters as much as where. The Nemotron models return a code
@@ -78,7 +79,9 @@ to be tested each time:
 
 - Qwen3.8-27B, with dense attention in a quarter of its layers, stayed exact
   at 507k with a factor of 4 and a 16-bit cache, and at 519k with an FP8
-  cache.
+  cache. At 986k with the FP8 cache it got two of three: asked for locker
+  34548 it gave locker 34458's code, two digits swapped, after 46 minutes of
+  reading.
 - Qwen3.8-Flash-Next attends sparsely and loses its place past the trained
   length. A factor of 2 with a 524k window does better than a factor of 4 with
   558k (2/3 against 0/3 at about 517k). Neither is exact.
@@ -179,6 +182,7 @@ Three ways to serve, one port:
     scripts/context-test.py    recall across the window through a tool call; the acceptance test
     scripts/bench.py           speed, thinking, tool loop and the recall test, one JSON line per model
     scripts/results.py         rank the results; --publish writes docs/results.json and the tables
+    scripts/clef-test.py       the recall test for a decision model: multiple choice and claims to check
     bin/clone                  fable in the current directory, pointed at the server; tmux over SSH
     agent/                     fable, the agent (see agent/README.md)
     docs/                      the project page, served by GitHub Pages
@@ -226,7 +230,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.2.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.3.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -372,12 +376,15 @@ licenses.
 ## Open ends
 
 - A window of 1M that is also exact. Qwen3.8-27B with an FP8 cache is exact
-  at 519k, and the full 1.01M step is the next number in. With a 16-bit cache
-  that model passed at 507k, but the cache that fits at that precision (950k
-  tokens) has no headroom over a prompt that fills the window, so that
-  profile stops at 900k.
-- Running the bake-off: DeepSeek V4 Flash, GLM-5.3-Flash, Kimi Linear,
-  Seed-OSS-36B, Qwen3.6-35B-A3B and Qwen3.5-122B are queued on the Spark.
+  at 519k and got two of three at 986k. With a 16-bit cache that model passed
+  at 507k; the cache that fits at that precision (950k tokens) has no headroom
+  over a prompt that fills the window, so that profile stops at 900k, and its
+  900k step is queued.
+- Running the bake-off: DeepSeek V4 Flash (3-bit, 2-bit, and 2-bit with its
+  DSpark draft), GLM-5.3-Flash, Kimi Linear, Seed-OSS-36B, Qwen3.6-35B-A3B and
+  Qwen3.5-122B are queued on the Spark, then the models measured before, again
+  with `scripts/bench.py`. Clef and Clef-Flash get `scripts/clef-test.py`, the
+  same records as multiple choice and as claims to check.
   Larger models from the same labs (DeepSeek V4.1 Flash at 510 GB, MiniMax
   M3, Kimi K3, GLM-5.3) have no build that fits one Spark, and MiMo-V2.6-Flash
   only fits pruned or at under 2.5 bits.
@@ -388,7 +395,9 @@ licenses.
   questions (yes or no, pick one, a score) about a passage in one pass,
   without generating text, and llama.cpp serves them at `/v1/systemone`. The
   27B one is good at spotting claims a passage does not support, which is the
-  failure that matters here. It has not been tried.
+  failure that matters here. `scripts/clef-test.py` asks it to pick each code
+  out of eight that include the neighbouring records' codes, and to judge
+  true claims and off-by-one ones.
 - The older llama.cpp profiles (`glm-4.5-air`, `gpt-oss-120b`, `qwen3-235b`)
   have not been run. `pull-model.sh` checks the repo before downloading and
   says which line to fix.

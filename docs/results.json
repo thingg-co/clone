@@ -4,6 +4,50 @@
  "test": "Numbered records with random six-digit codes fill the prompt. Three codes are asked for, near the start, the middle and the end, and must come back through a tool call.",
  "models": [
   {
+   "label": "qwen3.8-27b-fp8",
+   "title": "Qwen3.8-27B, FP8 cache",
+   "detail": "dense 27B, NVFP4, 22 GB",
+   "note": "vLLM, stretched from 256k, FP8 cache",
+   "model": "qwen3.8-27b",
+   "window": 1010000,
+   "decode_tps": 12.2,
+   "prefill_tps": 918,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 92748,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 101
+    },
+    {
+     "tokens": 253101,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 310
+    },
+    {
+     "tokens": 519076,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 911
+    },
+    {
+     "tokens": 986006,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 2777
+    }
+   ],
+   "date": "2026-10-14"
+  },
+  {
    "label": "qwen3.8-27b",
    "title": "Qwen3.8-27B, 16-bit cache",
    "detail": "dense 27B, NVFP4, 22 GB",

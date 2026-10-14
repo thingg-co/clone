@@ -18,7 +18,8 @@ load_env
 [ "$#" -gt 0 ] || die "usage: spark/bake.sh backend:profile[:long] ..."
 STATE="$RUN_DIR/bake.state"
 exec > >(tee -a "$LOG_DIR/bake.log") 2>&1
-trap 'rm -f "$STATE"' EXIT
+# Another queue may be waiting its turn; only clear the state file if this one wrote it.
+trap 'grep -q " $$\$" "$STATE" 2>/dev/null && rm -f "$STATE"' EXIT
 
 profile_file() { if [ "$1" = vllm ]; then echo "$ROOT/config/vllm/$2.env"; else echo "$ROOT/config/models/$2.env"; fi; }
 field() {  # backend profile NAME: one field of a profile, empty when unset
@@ -62,7 +63,8 @@ serve() {  # backend profile long
     local want i=0
     if [ "$1" = vllm ]; then want=$(field vllm "$2" SERVED_NAME); else want=$(field llama "$2" ALIAS); fi
     want=${want:-$2}
-    until served | tr ' ' '\n' | grep -qx "$want"; do
+    until served | tr ' ' '\n' | grep -qx "$want" ||
+          { [ "$(field "$1" "$2" KIND)" = decision ] && curl -sf -m 5 "http://127.0.0.1:$PORT/health" >/dev/null; }; do
         [ "$i" -ge 60 ] && return 1
         sleep 10; i=$((i + 1))
     done
@@ -80,7 +82,7 @@ for item in "$@"; do
     long=${long:-0}
     case "$backend" in vllm|llama) ;; *) warn "skipping $item: backend must be vllm or llama"; continue ;; esac
     [ -f "$(profile_file "$backend" "$key")" ] || { warn "skipping $item: no profile"; continue; }
-    echo "$item $n/$# $(date +%s)" > "$STATE"
+    echo "$item $n/$# $(date +%s) $$" > "$STATE"
 
     log "[$n/$#] $item: download"
     if [ "$backend" = vllm ]; then "$ROOT/spark/vllm.sh" pull "$key"; else "$ROOT/spark/pull-model.sh" "$key"; fi \
@@ -98,9 +100,15 @@ for item in "$@"; do
             grep -i -E "n_ctx|fit|KV buffer|compute buffer|model buffer|failed" | tail -20 > "$LOG_DIR/bake-$key-start.log"
     fi
     log "[$n/$#] $item: serving, $(mem_available_gb) GB of memory left; measuring (log: logs/bench-$key.log)"
-    python3 -I -u "$ROOT/scripts/bench.py" --base-url "http://127.0.0.1:$PORT/v1" --api-key "${API_KEY:-local}" \
-        --label "$key" --title "$(field "$backend" "$key" TITLE)" --detail "$(field "$backend" "$key" DETAIL)" \
-        --note "$(note_for "$backend" "$key" "$long")" > "$LOG_DIR/bench-$key.log" 2>&1
+    if [ "$(field "$backend" "$key" KIND)" = decision ]; then   # writes no text: the checker version of the test
+        python3 -I -u "$ROOT/scripts/clef-test.py" --base-url "http://127.0.0.1:$PORT" --api-key "${API_KEY:-local}" \
+            --model "$(field "$backend" "$key" ALIAS)" --label "$key" --title "$(field "$backend" "$key" TITLE)" \
+            --detail "$(field "$backend" "$key" DETAIL)" > "$LOG_DIR/bench-$key.log" 2>&1
+    else
+        python3 -I -u "$ROOT/scripts/bench.py" --base-url "http://127.0.0.1:$PORT/v1" --api-key "${API_KEY:-local}" \
+            --label "$key" --title "$(field "$backend" "$key" TITLE)" --detail "$(field "$backend" "$key" DETAIL)" \
+            --note "$(note_for "$backend" "$key" "$long")" > "$LOG_DIR/bench-$key.log" 2>&1
+    fi
     log "[$n/$#] $item: $(tail -n 1 "$LOG_DIR/bench-$key.log")"
 done
 
@@ -109,7 +117,7 @@ done
 [ -s "$RUN_DIR/bake.final" ] && FINAL=$(head -n 1 "$RUN_DIR/bake.final")
 if [ -n "${FINAL:-}" ]; then
     IFS=: read -r backend key long <<< "$FINAL"
-    echo "$FINAL final $(date +%s)" > "$STATE"
+    echo "$FINAL final $(date +%s) $$" > "$STATE"
     log "queue done; serving $FINAL"
     serve "$backend" "$key" "${long:-0}" || warn "$FINAL did not start"
 fi

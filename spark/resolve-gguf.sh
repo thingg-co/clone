@@ -6,7 +6,7 @@ set -euo pipefail
 load_env
 load_model "${1:?usage: resolve-gguf.sh <model-key>}"
 
-dir="$MODELS_DIR/$MODEL_KEY"
+dir="$MODELS_DIR/${MODEL_DIR:-$MODEL_KEY}"
 [ -d "$dir" ] || die "$dir does not exist; run spark/pull-model.sh $MODEL_KEY"
 
 mapfile -t files < <(find "$dir" -type f -iname '*.gguf' -ipath "*${GGUF_MATCH}*" 2>/dev/null | sort)
