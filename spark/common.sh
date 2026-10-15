@@ -23,6 +23,9 @@ load_env() {
     LLAMA_DIR=${LLAMA_DIR:-$ROOT/llama.cpp}
     LOG_DIR=${LOG_DIR:-$ROOT/logs}
     RUN_DIR=${RUN_DIR:-$ROOT/run}
+    # Memory (GB) every model must leave free once loaded. With 3 to 5 GB left, long prompts
+    # ran the Spark out of memory more than once.
+    SAFETY_GB=${SAFETY_GB:-10}
     mkdir -p "$LOG_DIR" "$RUN_DIR"
 }
 
@@ -71,6 +74,18 @@ settled_mem_gb() {
         if [ "$n" -ge 6 ] && [ "$now" -ge "$want" ]; then echo "$now"; return 0; fi
         if [ "$t" -ge "$secs" ]; then echo "$now"; return 1; fi
     done
+}
+
+# Once a server answers: stop its unit ($1) if it leaves less than SAFETY_GB free.
+check_margin() {
+    local left
+    left=$(settled_mem_gb 0 120) || true
+    if [ "$left" -lt "$SAFETY_GB" ]; then
+        systemctl --user stop "$1"
+        warn "only ${left} GB free with the model loaded, under the ${SAFETY_GB} GB margin (SAFETY_GB); stopped $1"
+        return 1
+    fi
+    log "${left} GB free with the model loaded (margin ${SAFETY_GB} GB)"
 }
 
 # Wait for an llama-server health endpoint. $1 = port, $2 = seconds (default 600).

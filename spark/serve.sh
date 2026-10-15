@@ -29,9 +29,11 @@ fi
 
 # CTX in the profile is per slot. llama-server's -c is the total, divided between -np slots.
 # CTX=fit leaves -c out: llama.cpp starts from the model's trained window and shrinks it
-# until it fits, keeping FIT_MARGIN_MB free for everything else on the machine.
+# until it fits, keeping FIT_MARGIN_MB free for everything else on the machine. The fit
+# counts what goes to the GPU; llama-server's own memory comes on top, 3 to 5 GB, so the
+# default aims 6 GB past SAFETY_GB.
 if [ "$CTX" = fit ]; then
-    ctx_args=(--fit on --fit-ctx "${CTX_MIN:-65536}" --fit-target "${FIT_MARGIN_MB:-8192}")
+    ctx_args=(--fit on --fit-ctx "${CTX_MIN:-65536}" --fit-target "${FIT_MARGIN_MB:-$(((SAFETY_GB + 6) * 1024))}")
 else
     ctx_args=(-c $((CTX * SLOTS)))
 fi

@@ -51,9 +51,10 @@ note_for() {  # backend profile long: how it was served, for the results table
 }
 
 serve() {  # backend profile long
+    # switch fails when the server does not come up or leaves less than SAFETY_GB free
     if [ "$1" = vllm ]; then
         systemctl --user disable --now llama-server.service 2>/dev/null || true
-        "$ROOT/spark/vllm.sh" switch "$2" "$3"
+        "$ROOT/spark/vllm.sh" switch "$2" "$3" || return 1
     else
         systemctl --user disable --now vllm.service 2>/dev/null || true
         if grep -q '^BACKEND=' "$ROOT/config/spark.env"; then
@@ -62,7 +63,7 @@ serve() {  # backend profile long
             echo BACKEND=llama >> "$ROOT/config/spark.env"
         fi
         "$ROOT/spark/service.sh" install
-        "$ROOT/spark/service.sh" switch "$2"
+        "$ROOT/spark/service.sh" switch "$2" || return 1
     fi
     local want i=0
     if [ "$1" = vllm ]; then want=$(field vllm "$2" SERVED_NAME); else want=$(field llama "$2" ALIAS); fi
@@ -71,6 +72,25 @@ serve() {  # backend profile long
           { [ "$(field "$1" "$2" KIND)" = decision ] && curl -sf -m 5 "http://127.0.0.1:$PORT/health" >/dev/null; }; do
         [ "$i" -ge 60 ] && return 1
         sleep 10; i=$((i + 1))
+    done
+}
+
+# While a model is measured: stop the servers if free memory stays under GUARD_GB for 4 s.
+# Each model starts with SAFETY_GB free, but a long prompt can need more memory than the
+# model held at idle; GLM-5.3-Flash took the Spark from 2 GB free to none within a minute.
+guard() {  # item
+    local low=0
+    while sleep 2; do
+        if [ "$(mem_available_gb)" -lt "${GUARD_GB:-3}" ]; then
+            low=$((low + 1))
+            if [ "$low" -ge 2 ]; then
+                warn "$1: under ${GUARD_GB:-3} GB free while measuring; stopping the server"
+                systemctl --user stop llama-server.service vllm.service 2>/dev/null
+                return
+            fi
+        else
+            low=0
+        fi
     done
 }
 
@@ -130,6 +150,8 @@ while :; do
             grep -i -E "n_ctx|fit|KV buffer|compute buffer|model buffer|failed" | tail -20 > "$LOG_DIR/bake-$key-start.log"
     fi
     log "[$of] $item: serving, $(mem_available_gb) GB of memory left; measuring (log: logs/bench-$key.log)"
+    guard "$item" &
+    guard_pid=$!
     if [ "$(field "$backend" "$key" KIND)" = decision ]; then   # writes no text: the checker version of the test
         python3 -I -u "$ROOT/scripts/clef-test.py" --base-url "http://127.0.0.1:$PORT" --api-key "${API_KEY:-local}" \
             --model "$(field "$backend" "$key" ALIAS)" --label "$key" --title "$(field "$backend" "$key" TITLE)" \
@@ -139,6 +161,7 @@ while :; do
             --label "$key" --title "$(field "$backend" "$key" TITLE)" --detail "$(field "$backend" "$key" DETAIL)" \
             --note "$(note_for "$backend" "$key" "$long")" > "$LOG_DIR/bench-$key.log" 2>&1
     fi
+    kill "$guard_pid" 2>/dev/null; wait "$guard_pid" 2>/dev/null
     log "[$of] $item: $(tail -n 1 "$LOG_DIR/bench-$key.log")"
 done
 

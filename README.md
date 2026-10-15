@@ -204,11 +204,14 @@ llama.cpp profiles in `config/models/`:
 
 `CTX=fit` in a llama.cpp profile leaves the window to llama.cpp: it starts
 from the window the model was trained for and shrinks it until weights and
-cache fit, keeping `FIT_MARGIN_MB` free for the rest of the machine. The
-window it settled on is in the server log and on the control page. It
-depends on what else holds memory at the time: the 3-bit DeepSeek got 991k
-with nothing else running and 857k while a download held about 3 GB. The
-2-bit build, 7 GB smaller, got the full 1,048,576 with a download running.
+cache fit, keeping `FIT_MARGIN_MB` free for the rest of the machine. That
+defaults to `SAFETY_GB` plus 6 GB, 16 GB in all, because llama-server's own
+memory comes on top of what the fit counts. The window it settled on is in
+the server log and on the control page. It depends on what else holds memory
+at the time: with the 8 GB margin used until 2026-10-15, the 3-bit DeepSeek
+got 991k with nothing else running and 857k while a download held about
+3 GB, and the 2-bit build, 7 GB smaller, got the full 1,048,576 with a
+download running.
 
 `TEMPLATE_KWARGS` in a llama.cpp profile passes values to the model's chat
 template, for every request that does not set them itself. The DeepSeek
@@ -327,7 +330,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.21.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.22.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -425,6 +428,14 @@ server that was just stopped or killed takes a while to give its memory back,
 and a model that began loading in that gap stalled the Spark for hours, three
 times. `spark/preflight.sh` shows what is using the box if a start is
 refused; `FORCE=1` skips the check and the wait.
+
+Once loaded, a model must leave `SAFETY_GB` free, 10 GB unless
+`config/spark.env` says otherwise. A switch from the page, `service.sh` or
+`vllm.sh` stops a model that leaves less, and says so. Long prompts need
+memory on top of what a model holds at idle: GLM-5.3-Flash started a 144k
+prompt with 2 GB free and took the Spark to none within a minute. While a bake
+measures a model it also watches the memory and stops the server if it stays
+under `GUARD_GB` (3 GB) for four seconds.
 
 When the Spark ran out of memory it did not recover by itself: the kernel kept
 swapping and the GPU driver's allocations failed, and the OOM killer acted

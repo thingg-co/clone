@@ -181,7 +181,9 @@ PY
         "$0" install
         log "restarting vllm with $key, VLLM_LONG=$long (loading the weights takes several minutes)"
         systemctl --user restart vllm.service
-        wait_healthy "$VLLM_PORT" 1800 && log "healthy on :$VLLM_PORT" || warn "not healthy after 30 min; check: spark/vllm.sh logs"
+        wait_healthy "$VLLM_PORT" 1800 || die "not healthy after 30 min; check: spark/vllm.sh logs"
+        log "healthy on :$VLLM_PORT"
+        check_margin vllm.service || exit 1
         ;;
     stop) docker stop "$NAME" ;;
     logs) docker logs -f --tail 200 "$NAME" ;;

@@ -64,7 +64,9 @@ case "$cmd" in
         if grep -q '^MODEL=' "$f"; then sed -i "s/^MODEL=.*/MODEL=$key/" "$f"; else echo "MODEL=$key" >> "$f"; fi
         log "MODEL=$key written to config/spark.env; restarting main"
         systemctl --user restart llama-server.service
-        wait_healthy "$PORT" 900 && log "healthy on :$PORT" || warn "not healthy after 15 min; check: spark/service.sh logs"
+        wait_healthy "$PORT" 900 || die "not healthy after 15 min; check: spark/service.sh logs"
+        log "healthy on :$PORT"
+        check_margin llama-server.service || exit 1
         ;;
     bg)
         pidf="$RUN_DIR/$inst.pid"
