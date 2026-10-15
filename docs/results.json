@@ -730,6 +730,67 @@
    "date": "2026-10-14"
   },
   {
+   "label": "nemotron-cascade-2",
+   "title": "Nemotron-Cascade-2 30B-A3B",
+   "detail": "30B, 3B active, 8-bit GGUF, 34 GB",
+   "note": "llama.cpp, 16-bit cache",
+   "model": "nemotron-cascade-2",
+   "window": 1048576,
+   "decode_tps": 57.9,
+   "prefill_tps": 1821,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 89211,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 49,
+     "finish": "tool_calls",
+     "written": 272
+    },
+    {
+     "tokens": 253349,
+     "right": 0,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 126,
+     "finish": "tool_calls",
+     "written": 737
+    },
+    {
+     "tokens": 520550,
+     "right": 0,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 256,
+     "finish": "tool_calls",
+     "written": 41
+    },
+    {
+     "tokens": 759615,
+     "right": 0,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 317,
+     "finish": "tool_calls",
+     "written": 42
+    },
+    {
+     "tokens": 991455,
+     "right": 0,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 1863,
+     "finish": "length",
+     "written": 32768
+    }
+   ],
+   "date": "2026-10-15"
+  },
+  {
    "label": "kimi-linear-48b",
    "title": "Kimi Linear 48B-A3B",
    "detail": "48B, 3B active, 8-bit GGUF, 52 GB",

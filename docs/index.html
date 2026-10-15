@@ -272,6 +272,15 @@ footer p { margin: 0 0 8px; }
             <td class="num">1,565 tok/s</td>
           </tr>
           <tr>
+            <td class="model"><b>Nemotron-Cascade-2 30B-A3B</b><span>30B, 3B active, 8-bit GGUF, 34 GB</span></td>
+            <td>1.05M<br><small>llama.cpp, 16-bit cache</small></td>
+            <td class="num fail">none</td>
+            <td class="steps"><span class="fail">89k&nbsp;2/3</span> <span class="fail">253k&nbsp;0/3</span> <span class="fail">521k&nbsp;0/3</span> <span class="fail">760k&nbsp;0/3</span> <span class="fail">991k&nbsp;0/3</span></td>
+            <td>yes</td>
+            <td class="num">58 tok/s</td>
+            <td class="num">1,821 tok/s</td>
+          </tr>
+          <tr>
             <td class="model"><b>Kimi Linear 48B-A3B</b><span>48B, 3B active, 8-bit GGUF, 52 GB</span></td>
             <td>1.05M<br><small>llama.cpp, 16-bit cache</small></td>
             <td class="num fail">none</td>
@@ -304,7 +313,8 @@ footer p { margin: 0 0 8px; }
     <p>MiMo-V2.6-Flash, cut to half its experts with FP4 experts, had room for its whole million-token window and got no code right at any size. At 89k its reasoning found two of the three codes and misread the first, and then it sent the three locker numbers as the answer. At 254k it quoted all three records with the wrong codes. Past 500k it lost the task altogether: it listed codes until its 32,768 tokens ran out, wrote strings of made-up numbers, and at 954k counted from one for three hours without calling the tool. Half the experts is a deep cut, and nobody has published evaluations of this build, so this says little about the whole model.</p>
     <p>Kimi Linear, which has no thinking mode, also had room for its whole window, with 57 GB to spare, and is quick at 58 tokens a second. It answered at once at every size and called the tool correctly each time. At 256k it got two codes of three, giving the code for locker 2168 when asked for locker 7168. At every other size it sent the three locker numbers back as the codes.</p>
     <p>Seed-OSS-36B, a dense model trained to 512k, got a 490,240-token window once 10 GB was held back. It got every code at 93k and 253k. At 457k it wrote its answer out as text and never called the tool. It is slow at that depth: decoding falls from 6.3 tokens a second to about 3 at 93k, reading falls under 40 tokens a second past 400k, and the last step took nearly two hours.</p>
-    <p>Being measured on the Spark now, with the same test: Nemotron-Cascade-2, trained to a million tokens, and dots3-note and K2-Horizon MoVA, trained to 512k. Then DeepSeek V4 Flash twice more, at 2 bits again and on ds4, an engine antirez wrote for this one model. It is reported to read prompts three times as fast as llama.cpp, and it keeps a million tokens of cache in about 4 GB. After them, the models above are measured again with the same script, so every row is taken the same way. Since 15 October every model has to leave 10 GB free once it is loaded. Earlier rows were measured with less held back, as little as 3 GB, so some windows in the table are larger than the model would get now. GLM-5.3-Flash at 2 bits got every code at 70k, and partway into a 144k prompt the Spark ran out of memory and hung. GLM was not the cause. Its memory use held flat through the prompt until another job on the machine started training and took the rest, so it runs again after the two DeepSeek runs, with a build pruned to 144 experts at 4 bits. The table above fills in as each one finishes.</p>
+    <p>Nemotron-Cascade-2, which NVIDIA trained to a million tokens, fit the whole window and is fast, but it missed a code at 89k and every code from 253k on. At 253k each code came from a different record. At 521k and 760k it sent the locker numbers back as the codes, and at 991k it filled its 32,768 tokens with a tool call that repeated two numbers.</p>
+    <p>Being measured on the Spark now, with the same test: dots3-note and K2-Horizon MoVA, trained to 512k. Then DeepSeek V4 Flash twice more, at 2 bits again and on ds4, an engine antirez wrote for this one model. It is reported to read prompts three times as fast as llama.cpp, and it keeps a million tokens of cache in about 4 GB. After them, the models above are measured again with the same script, so every row is taken the same way. Since 15 October every model has to leave 10 GB free once it is loaded. Earlier rows were measured with less held back, as little as 3 GB, so some windows in the table are larger than the model would get now. GLM-5.3-Flash at 2 bits got every code at 70k, and partway into a 144k prompt the Spark ran out of memory and hung. GLM was not the cause. Its memory use held flat through the prompt until another job on the machine started training and took the rest, so it runs again after the two DeepSeek runs, with a build pruned to 144 experts at 4 bits. The table above fills in as each one finishes.</p>
   </section>
 
   <section>

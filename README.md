@@ -80,8 +80,9 @@ has it:
 | 14 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
 | 15 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
 | 16 | Nemotron-Labs-3 Puzzle 75B (75B, 9B active, NVFP4, 54 GB) | 1M, vLLM, 16-bit cache | none | 89k 2/3, 253k 1/3, 521k 1/3, 760k 0/3, 950k 0/3 | yes | 20 tok/s | 1,565 tok/s |
-| 17 | Kimi Linear 48B-A3B (48B, 3B active, 8-bit GGUF, 52 GB) | 1.05M, llama.cpp, 16-bit cache | none | 61k 0/3, 256k 2/3, 502k 0/3, 751k 0/3, 986k 0/3 | tool loop only | 58 tok/s | 1,112 tok/s |
-| 18 | MiMo-V2.6-Flash, REAP 50% (half the experts kept, FP4 experts, 92 GB) | 1M, llama.cpp, 8-bit cache | none | 89k 0/3, 254k 0/3, 521k 0/3, 760k 0/3, 954k 0/3 | no | 14 tok/s | 590 tok/s |
+| 17 | Nemotron-Cascade-2 30B-A3B (30B, 3B active, 8-bit GGUF, 34 GB) | 1.05M, llama.cpp, 16-bit cache | none | 89k 2/3, 253k 0/3, 521k 0/3, 760k 0/3, 991k 0/3 | yes | 58 tok/s | 1,821 tok/s |
+| 18 | Kimi Linear 48B-A3B (48B, 3B active, 8-bit GGUF, 52 GB) | 1.05M, llama.cpp, 16-bit cache | none | 61k 0/3, 256k 2/3, 502k 0/3, 751k 0/3, 986k 0/3 | tool loop only | 58 tok/s | 1,112 tok/s |
+| 19 | MiMo-V2.6-Flash, REAP 50% (half the experts kept, FP4 experts, 92 GB) | 1M, llama.cpp, 8-bit cache | none | 89k 0/3, 254k 0/3, 521k 0/3, 760k 0/3, 954k 0/3 | no | 14 tok/s | 590 tok/s |
 <!-- results:end -->
 
 How they fail matters as much as where. The Nemotron models return a code
@@ -189,6 +190,16 @@ whether its codes were right is not known; the test now notes which codes
 such an answer contains. Dense attention makes it slow at depth. It decodes
 6.3 tok/s on a short prompt and 3.2 at 93k, reads about 650 tok/s at first
 and under 40 past 400k, and its last step took nearly two hours.
+
+Nemotron-Cascade-2 is Lightning's shape with different post-training, and
+its card shows needle tests passing at 1M. It had room for the whole window
+with 76 GB to spare, decoded at 58 tok/s and went through all five steps in
+44 minutes, but recall broke early. At 89k it gave locker 1522's code for
+locker 1762. At 253k all three were wrong, each from a different record:
+locker 1373's code for 137, 899's for 4919 and 861's for 9611. At 521k and
+760k it sent the locker numbers back as the codes. At 991k it began a tool
+call with the three locker numbers and then repeated two codes until its
+32,768 tokens ran out.
 
 Long prompts cost time. Flash-Next reads about 2,500 tok/s, so a cold 500k
 prompt takes under four minutes. The dense 27B reads 900 tok/s for the first
@@ -375,7 +386,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.27.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.28.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -560,8 +571,8 @@ licenses.
   986k. With a 16-bit cache that model passed at 507k; the cache that fits at
   that precision (950k tokens) has no headroom over a prompt that fills the
   window, so that profile stops at 900k, and its 900k step is queued.
-- Running the bake-off: Nemotron-Cascade-2, dots3-note and K2-Horizon MoVA
-  are queued on the Spark. Then DeepSeek V4 Flash runs at 2
+- Running the bake-off: dots3-note and K2-Horizon MoVA are queued on the
+  Spark. Then DeepSeek V4 Flash runs at 2
   bits again, to see whether it keeps its 1M window with the 10 GB margin,
   and on ds4. GLM-5.3-Flash follows, whole at 2 bits and pruned at 4 bits.
   The Spark hung during its 144k prompt, but another job's training caused
