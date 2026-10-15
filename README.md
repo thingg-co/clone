@@ -79,6 +79,7 @@ has it:
 | 13 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
 | 14 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
 | 15 | Nemotron-Labs-3 Puzzle 75B (75B, 9B active, NVFP4, 54 GB) | 1M, vLLM, 16-bit cache | none | 89k 2/3, 253k 1/3, 521k 1/3, 760k 0/3, 950k 0/3 | yes | 20 tok/s | 1,565 tok/s |
+| 16 | MiMo-V2.6-Flash, REAP 50% (half the experts kept, FP4 experts, 92 GB) | 1M, llama.cpp, 8-bit cache | none | 89k 0/3, 254k 0/3, 521k 0/3, 760k 0/3, 954k 0/3 | no | 14 tok/s | 590 tok/s |
 <!-- results:end -->
 
 How they fail matters as much as where. The Nemotron models return a code
@@ -132,7 +133,9 @@ tool. Given 32,768 tokens instead of 4,000, it went back and forth over that
 code until they ran out. Two more tries at normal sampling got one and two of
 three. At 970k it got two of three, giving locker 26499's code for locker
 26995. The max run had an 857k window, less than the earlier ones because
-downloads were holding memory, so it runs again near 1M once they finish.
+downloads were holding memory. With the 10 GB margin every model now keeps,
+the 3-bit build would get far less than that, so it is not run again near 1M.
+The 2-bit build is.
 
 The 2-bit build, also at max, had room for the full 1,048,576 tokens. It got
 all three codes at 61k, 255k, 501k and 985k, and 985k is the largest prompt
@@ -156,6 +159,18 @@ accepted 90 to 95 percent of the drafted tokens. The answers are the main
 model's, and it got all three codes at 55k. The draft's 11 GB comes out of
 the cache, though, and only a 131k window fit, so on this box the profile is
 no use past about 90k.
+
+MiMo-V2.6-Flash, cut to half its experts with FP4 experts, had room for its
+full 1M window with 10 GB to spare and decoded at 14 tok/s. It got no code
+right at any size. At 89k its reasoning found two of the three codes and
+misread the first, and then it sent the three locker numbers as the codes.
+At 254k it quoted all three records with the wrong codes. At 521k it began
+listing a code for every record and ran out of its 32,768 tokens after two
+hours. At 760k it wrote a string of made-up numbers, and at 954k it counted
+1, 2, 3 for three hours. It called no tool at either size. On the short
+check it answered without thinking or calling the tool. Half the experts is a
+deep cut and nobody has published evaluations of this build, so this says
+little about the whole model, which does not fit here.
 
 Long prompts cost time. Flash-Next reads about 2,500 tok/s, so a cold 500k
 prompt takes under four minutes. The dense 27B reads 900 tok/s for the first
@@ -342,7 +357,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.23.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.24.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -510,20 +525,24 @@ licenses.
 ## Open ends
 
 - A window of 1M that is also exact. DeepSeek V4 Flash at 3 bits and max
-  effort is exact to 805k, the most its window held on that run, and runs
-  again near 1M once the downloads are done. At 2 bits it held the full
-  1,048,576 and got all three at 985k, but one wrong at 751k. Qwen3.8-27B
-  with an FP8 cache is exact at 519k and got two of three at 986k. With a
-  16-bit cache that model passed at 507k; the cache that fits at that
-  precision (950k tokens) has no headroom over a prompt that fills the
+  effort is exact to 805k, the most its window held on that run. With the
+  10 GB margin it would get far less, so it is not run again. At 2 bits it
+  held the full 1,048,576 and got all three at 985k, but one wrong at 751k.
+  It runs again with the margin, and on ds4 with antirez's 2-bit build.
+  Qwen3.8-27B with an FP8 cache is exact at 519k and got two of three at
+  986k. With a 16-bit cache that model passed at 507k; the cache that fits at
+  that precision (950k tokens) has no headroom over a prompt that fills the
   window, so that profile stops at 900k, and its 900k step is queued.
-- Running the bake-off: DeepSeek V4 Flash in 0xSero's single-Spark build,
-  GLM-5.3-Flash (2-bit, and pruned at 4-bit), MiMo-V2.6-Flash pruned, Kimi
-  Linear, Seed-OSS-36B, Nemotron-Cascade-2, dots3-note and K2-Horizon MoVA
-  are queued on the Spark, then the models measured before, Flash-Next
-  included, again with `scripts/bench.py`. Clef and Clef-Flash get
-  `scripts/clef-test.py`, the same records as multiple choice and as claims
-  to check.
+- Running the bake-off: Kimi Linear, Seed-OSS-36B, Nemotron-Cascade-2,
+  dots3-note and K2-Horizon MoVA are queued on the Spark. Then DeepSeek V4
+  Flash runs at 2 bits again, to see whether it keeps its 1M window with the
+  10 GB margin, and on ds4. After that, the models measured before run again
+  with `scripts/bench.py`, Flash-Next included. GLM-5.3-Flash (2-bit, and
+  pruned at 4-bit) stays out until it is clear why a 144k prompt ran the
+  Spark out of memory. 0xSero's single-Spark DeepSeek build is not in this
+  round. Clef and Clef-Flash get `scripts/clef-test.py`, the same records as
+  multiple choice and as claims to check, once their 64k profiles have been
+  tried.
   Larger models from the same labs (DeepSeek V4.1 Flash at 510 GB, MiniMax
   M3, Kimi K3, GLM-5.3) have no build that fits one Spark. Inkling-Small
   (Thinking Machines) needs llama.cpp support that is still a draft.

@@ -685,6 +685,194 @@
     }
    ],
    "date": "2026-10-14"
+  },
+  {
+   "label": "mimo-v2.6-flash-reap",
+   "title": "MiMo-V2.6-Flash, REAP 50%",
+   "detail": "half the experts kept, FP4 experts, 92 GB",
+   "note": "llama.cpp, 8-bit cache",
+   "model": "mimo-v2.6-flash-reap",
+   "window": 1004544,
+   "decode_tps": 13.8,
+   "prefill_tps": 590,
+   "thinking": false,
+   "tool_call": false,
+   "tool_loop": false,
+   "recall": [
+    {
+     "tokens": 89024,
+     "right": 0,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 151,
+     "finish": "tool_calls",
+     "written": 210
+    },
+    {
+     "tokens": 253708,
+     "right": 0,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 396,
+     "finish": "tool_calls",
+     "written": 304
+    },
+    {
+     "tokens": 520755,
+     "right": 0,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 7710,
+     "finish": "length",
+     "written": 32768
+    },
+    {
+     "tokens": 759708,
+     "right": 0,
+     "of": 3,
+     "tool_call": false,
+     "seconds": 1156,
+     "finish": "stop",
+     "written": 179
+    },
+    {
+     "tokens": 954028,
+     "right": 0,
+     "of": 3,
+     "tool_call": false,
+     "seconds": 11335,
+     "finish": "length",
+     "written": 32768
+    }
+   ],
+   "date": "2026-10-15"
+  }
+ ],
+ "checkers": [
+  {
+   "kind": "checker",
+   "date": "2026-10-15",
+   "label": "clef-flash",
+   "title": "Clef-Flash",
+   "detail": "decision model on Qwen3.5-9B, 8-bit GGUF, 10 GB",
+   "model": "clef-flash",
+   "steps": [
+    {
+     "tokens": 3863,
+     "picks_right": 3,
+     "picks_of": 3,
+     "claims_right": 6,
+     "claims_of": 6,
+     "seconds": 4,
+     "picks": [
+      {
+       "locker": 17,
+       "right": true,
+       "p_right": 0.978,
+       "chose": "538485"
+      },
+      {
+       "locker": 81,
+       "right": true,
+       "p_right": 0.973,
+       "chose": "355953"
+      },
+      {
+       "locker": 123,
+       "right": true,
+       "p_right": 0.968,
+       "chose": "597128"
+      }
+     ],
+     "claims": [
+      {
+       "locker": 17,
+       "true": true,
+       "p_true": 0.989,
+       "right": true
+      },
+      {
+       "locker": 81,
+       "true": false,
+       "p_true": 0.005,
+       "right": true
+      },
+      {
+       "locker": 123,
+       "true": true,
+       "p_true": 0.989,
+       "right": true
+      },
+      {
+       "locker": 17,
+       "true": false,
+       "p_true": 0.008,
+       "right": true
+      },
+      {
+       "locker": 81,
+       "true": true,
+       "p_true": 0.991,
+       "right": true
+      },
+      {
+       "locker": 123,
+       "true": false,
+       "p_true": 0.005,
+       "right": true
+      }
+     ]
+    },
+    {
+     "tokens": 14839,
+     "picks_right": 3,
+     "picks_of": 3,
+     "claims_right": 3,
+     "claims_of": 6,
+     "seconds": 14,
+     "picks": [
+      {
+       "locker": 72,
+       "right": true,
+       "p_right": 0.985,
+       "chose": "714006"
+      },
+      {
+       "locker": 300,
+       "right": true,
+       "p_right": 0.971,
+       "chose": "895158"
+      },
+      {
+       "locker": 507,
+       "right": true,
+       "p_right": 0.973,
+       "chose": "549145"
+      }
+     ],
+     "claims": [
+      {
+       "locker": 72,
+       "true": true,
+       "p_true": 0.989,
+       "right": true
+      },
+      {
+       "locker": 300,
+       "true": false,
+       "p_true": 0.318,
+       "right": true
+      },
+      {
+       "locker": 507,
+       "true": true,
+       "p_true": 0.989,
+       "right": true
+      }
+     ],
+     "error": "<urlopen error [Errno 111] Connection refused>"
+    }
+   ]
   }
  ]
 }
