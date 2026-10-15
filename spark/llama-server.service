@@ -1,21 +1,18 @@
 # systemd user unit for the main llama-server instance. service.sh install
 # substitutes @ROOT@ and copies this to ~/.config/systemd/user/.
+# It is installed but never enabled, and it never restarts itself: a model server starts
+# only when someone asks (service.sh start or switch, the panel, the bake). On the Spark's
+# shared memory a server that died usually died of memory, and every automatic start after
+# one, at boot or after a crash, stalled the whole machine.
 [Unit]
 Description=llama-server main (clone)
 After=network-online.target
-# At most three starts in ten minutes, so a profile that cannot start does not loop.
-StartLimitIntervalSec=600
-StartLimitBurst=3
 
 [Service]
 Type=simple
 WorkingDirectory=@ROOT@
 ExecStart=/usr/bin/env bash @ROOT@/spark/serve.sh main
-Restart=on-failure
-RestartSec=5
-# No restart after the kernel's OOM killer (SIGKILL): the same start runs out of memory
-# again, and on the Spark's shared memory each time can stall the whole machine.
-RestartPreventExitStatus=SIGKILL
+Restart=no
 KillSignal=SIGINT
 TimeoutStopSec=60
 Environment=PATH=/usr/local/cuda/bin:/usr/local/bin:/usr/bin:/bin

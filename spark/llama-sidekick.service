@@ -1,18 +1,14 @@
 # systemd user unit for the optional small fast model.
+# Like the main unit: never enabled, never restarted automatically.
 [Unit]
 Description=llama-server sidekick (clone)
 After=network-online.target llama-server.service
-StartLimitIntervalSec=600
-StartLimitBurst=3
 
 [Service]
 Type=simple
 WorkingDirectory=@ROOT@
 ExecStart=/usr/bin/env bash @ROOT@/spark/serve.sh sidekick
-Restart=on-failure
-RestartSec=5
-# As for the main unit: no restart after an OOM kill.
-RestartPreventExitStatus=SIGKILL
+Restart=no
 KillSignal=SIGINT
 TimeoutStopSec=60
 Environment=PATH=/usr/local/cuda/bin:/usr/local/bin:/usr/bin:/bin

@@ -191,8 +191,6 @@ PY
 [Unit]
 Description=vLLM main (clone)
 After=network-online.target docker.service
-StartLimitIntervalSec=600
-StartLimitBurst=3
 
 [Service]
 Type=simple
@@ -201,17 +199,16 @@ Environment=VLLM_PROFILE=$VLLM_PROFILE
 Environment=VLLM_LONG=${VLLM_LONG:-0}
 ExecStart=/usr/bin/env bash $ROOT/spark/vllm.sh serve
 ExecStop=/usr/bin/docker stop $NAME
-Restart=on-failure
-RestartSec=10
-# No restart after an OOM kill (137 from docker, SIGKILL otherwise): it would run out again.
-RestartPreventExitStatus=137 SIGKILL
+# Never enabled and never restarted, like llama-server.service: a server that died on the
+# Spark usually died of memory, and starting it again stalled the machine.
+Restart=no
 TimeoutStopSec=90
 
 [Install]
 WantedBy=default.target
 UNIT
         systemctl --user daemon-reload
-        systemctl --user enable vllm.service >/dev/null
+        systemctl --user disable vllm.service >/dev/null 2>&1 || true
         log "installed vllm.service for profile $VLLM_PROFILE; start with: systemctl --user start vllm"
         ;;
     *) die "usage: vllm.sh pull|serve|switch|stop|logs|install|image [profile]" ;;

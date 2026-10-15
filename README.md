@@ -262,6 +262,8 @@ Four ways to serve, one port:
     spark/deepseek-spark.sh    DeepSeek V4 Flash through 0xSero's single-Spark build
     spark/serve.sh             llama-server for a profile (main, sidekick, or any key)
     spark/service.sh           systemd user units for the llama.cpp instances
+    spark/oom-reboot.sh        (sudo) reboot instead of hanging when memory runs out
+    spark/memwatch.sh          the memory-stall watch that oom-reboot.sh installs
     spark/panel.py             control page: status, profile and context switch, connection strings
     spark/preflight.sh         memory, GPU processes, ports, does the profile fit
     spark/bake.sh              measure a list of profiles in turn: download, serve, scripts/bench.py
@@ -298,8 +300,11 @@ On the Spark, in the tree:
 The bootstrap builds llama.cpp (about 15 minutes on the 20 cores), pulls the
 container image (37 GB) and the weights of the profile in `config/spark.env`
 (22 GB for Qwen3.8-27B, 133 GB for Flash-Next), installs systemd user units,
-starts them, waits for the health check and runs the smoke test. Nothing
-needs sudo; linger is already on, so the services outlive the SSH session.
+starts the model server, waits for the health check and runs the smoke test.
+Nothing needs sudo; linger is already on, so the services outlive the SSH
+session. Only the control page starts at boot. A model server starts when
+someone asks for it (`spark/service.sh start`, the page, a bake) and never
+restarts itself.
 Rerunning it is safe. The downloads are the slow part: this Spark gets 20 to
 30 MB/s from Hugging Face, so a 100 GB model takes an hour or more.
 
@@ -322,7 +327,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.20.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.21.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -418,9 +423,17 @@ Memory is checked before a model starts (`MIN_FREE_GB` in each profile), and
 the start waits until the available memory has held steady for 30 seconds. A
 server that was just stopped or killed takes a while to give its memory back,
 and a model that began loading in that gap stalled the Spark for hours, three
-times. The units don't restart a server the OOM killer took, and give up
-after three failed starts in ten minutes. `spark/preflight.sh` shows what is
-using the box if a start is refused; `FORCE=1` skips the check and the wait.
+times. `spark/preflight.sh` shows what is using the box if a start is
+refused; `FORCE=1` skips the check and the wait.
+
+When the Spark ran out of memory it did not recover by itself: the kernel kept
+swapping and the GPU driver's allocations failed, and the OOM killer acted
+hours later or not at all. `sudo spark/oom-reboot.sh install` makes it reboot
+instead. Running out of memory, a task stuck in the kernel for two minutes, or
+a minute of the whole machine waiting on memory each lead to a reboot, and the
+hardware watchdog resets the board if systemd itself stops. Since model
+servers don't start at boot, it comes back with nothing loaded.
+`spark/oom-reboot.sh status` shows the settings.
 
 ## The agent
 
