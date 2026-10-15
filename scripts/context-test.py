@@ -136,6 +136,10 @@ def main() -> int:
             print(f"            asked {asks}  want {want}  got {got}  (stopped: {ans['finish']}, {ans['written']} tokens written)")
             print(f"            raw arguments: {[c['function'].get('arguments', '')[:200] for c in calls] or (msg.get('content') or '')[:200]!r}")
             print(f"            reasoning: {(msg.get('reasoning_content') or msg.get('reasoning') or '')[:400]!r}", flush=True)
+            if not calls:  # answered in text: did it still have the codes, and how did it end
+                text, thought = msg.get("content") or "", msg.get("reasoning_content") or msg.get("reasoning") or ""
+                print(f"            wanted codes in the answer {[w for w in want if str(w) in text]}, in the reasoning "
+                      f"{[w for w in want if str(w) in thought]}; the answer ends {text[-600:]!r}", flush=True)
         # The same prompt again at the server's own sampling, which is how fable asks. By now the
         # prompt is cached, so each one costs only its answer.
         samples = []

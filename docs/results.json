@@ -503,6 +503,49 @@
    "date": "2026-10-14"
   },
   {
+   "label": "seed-oss-36b",
+   "title": "Seed-OSS-36B",
+   "detail": "dense 36B, 8-bit GGUF, 38 GB",
+   "note": "llama.cpp, 8-bit cache",
+   "model": "seed-oss-36b",
+   "window": 490240,
+   "decode_tps": 6.3,
+   "prefill_tps": 114,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 92547,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 809,
+     "finish": "tool_calls",
+     "written": 1015
+    },
+    {
+     "tokens": 253440,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 2724,
+     "finish": "tool_calls",
+     "written": 482
+    },
+    {
+     "tokens": 456786,
+     "right": 0,
+     "of": 3,
+     "tool_call": false,
+     "seconds": 6770,
+     "finish": "stop",
+     "written": 734
+    }
+   ],
+   "date": "2026-10-15"
+  },
+  {
    "label": "nemotron-3.5-lightning",
    "title": "Nemotron 3.5 Lightning",
    "detail": "30B, 3B active, NVFP4, 22 GB",

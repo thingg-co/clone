@@ -74,13 +74,14 @@ has it:
 | 8 | Qwen3.5-122B-A10B (122B, 10B active, NVFP4, 84 GB) | 500k, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 492k 2/3 | yes | 14 tok/s | 1,042 tok/s |
 | 9 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
 | 10 | Qwen3.6-35B-A3B (35B, 3B active, NVFP4, 23 GB) | 1.01M, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 519k 2/3, 1M 1/3 | yes | 77 tok/s | 2,897 tok/s |
-| 11 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
-| 12 | DeepSeek V4 Flash, 2-bit with DSpark (284B, 13B active, 2-bit GGUF and an 8-bit draft, 108 GB) | 131k, llama.cpp, 16-bit cache, reasoning effort max | 55k | 55k 3/3 | yes | 44 tok/s | 326 tok/s |
-| 13 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
-| 14 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
-| 15 | Nemotron-Labs-3 Puzzle 75B (75B, 9B active, NVFP4, 54 GB) | 1M, vLLM, 16-bit cache | none | 89k 2/3, 253k 1/3, 521k 1/3, 760k 0/3, 950k 0/3 | yes | 20 tok/s | 1,565 tok/s |
-| 16 | Kimi Linear 48B-A3B (48B, 3B active, 8-bit GGUF, 52 GB) | 1.05M, llama.cpp, 16-bit cache | none | 61k 0/3, 256k 2/3, 502k 0/3, 751k 0/3, 986k 0/3 | tool loop only | 58 tok/s | 1,112 tok/s |
-| 17 | MiMo-V2.6-Flash, REAP 50% (half the experts kept, FP4 experts, 92 GB) | 1M, llama.cpp, 8-bit cache | none | 89k 0/3, 254k 0/3, 521k 0/3, 760k 0/3, 954k 0/3 | no | 14 tok/s | 590 tok/s |
+| 11 | Seed-OSS-36B (dense 36B, 8-bit GGUF, 38 GB) | 490k, llama.cpp, 8-bit cache | 253k | 93k 3/3, 253k 3/3, 457k 0/3 | yes | 6 tok/s | 114 tok/s |
+| 12 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
+| 13 | DeepSeek V4 Flash, 2-bit with DSpark (284B, 13B active, 2-bit GGUF and an 8-bit draft, 108 GB) | 131k, llama.cpp, 16-bit cache, reasoning effort max | 55k | 55k 3/3 | yes | 44 tok/s | 326 tok/s |
+| 14 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
+| 15 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
+| 16 | Nemotron-Labs-3 Puzzle 75B (75B, 9B active, NVFP4, 54 GB) | 1M, vLLM, 16-bit cache | none | 89k 2/3, 253k 1/3, 521k 1/3, 760k 0/3, 950k 0/3 | yes | 20 tok/s | 1,565 tok/s |
+| 17 | Kimi Linear 48B-A3B (48B, 3B active, 8-bit GGUF, 52 GB) | 1.05M, llama.cpp, 16-bit cache | none | 61k 0/3, 256k 2/3, 502k 0/3, 751k 0/3, 986k 0/3 | tool loop only | 58 tok/s | 1,112 tok/s |
+| 18 | MiMo-V2.6-Flash, REAP 50% (half the experts kept, FP4 experts, 92 GB) | 1M, llama.cpp, 8-bit cache | none | 89k 0/3, 254k 0/3, 521k 0/3, 760k 0/3, 954k 0/3 | no | 14 tok/s | 590 tok/s |
 <!-- results:end -->
 
 How they fail matters as much as where. The Nemotron models return a code
@@ -178,6 +179,16 @@ Kimi Linear has no thinking mode. It had room for its whole 1M window with
 were well formed at every size. At 61k, 502k, 751k and 986k it sent the three
 locker numbers back as the codes, writing about 50 tokens each time. At 256k
 it got the first and last codes and gave locker 2168's code for locker 7168.
+
+Seed-OSS-36B is dense and trained to 512k. With an 8-bit cache and the 10 GB
+margin it got a 490,240-token window, so its last step was 457k. It got all
+three codes at 93k and 253k, after 1,015 and 482 tokens. At 457k it began the
+same way, then wrote its answer out as text and stopped after 734 tokens
+without calling the tool. The log kept only the start of that text, so
+whether its codes were right is not known; the test now notes which codes
+such an answer contains. Dense attention makes it slow at depth. It decodes
+6.3 tok/s on a short prompt and 3.2 at 93k, reads about 650 tok/s at first
+and under 40 past 400k, and its last step took nearly two hours.
 
 Long prompts cost time. Flash-Next reads about 2,500 tok/s, so a cold 500k
 prompt takes under four minutes. The dense 27B reads 900 tok/s for the first
@@ -364,7 +375,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.26.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.27.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -549,8 +560,8 @@ licenses.
   986k. With a 16-bit cache that model passed at 507k; the cache that fits at
   that precision (950k tokens) has no headroom over a prompt that fills the
   window, so that profile stops at 900k, and its 900k step is queued.
-- Running the bake-off: Seed-OSS-36B, Nemotron-Cascade-2, dots3-note and
-  K2-Horizon MoVA are queued on the Spark. Then DeepSeek V4 Flash runs at 2
+- Running the bake-off: Nemotron-Cascade-2, dots3-note and K2-Horizon MoVA
+  are queued on the Spark. Then DeepSeek V4 Flash runs at 2
   bits again, to see whether it keeps its 1M window with the 10 GB margin,
   and on ds4. GLM-5.3-Flash follows, whole at 2 bits and pruned at 4 bits.
   The Spark hung during its 144k prompt, but another job's training caused
