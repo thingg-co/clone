@@ -375,6 +375,67 @@
    "date": "2026-10-14"
   },
   {
+   "label": "qwen3.6-35b-a3b",
+   "title": "Qwen3.6-35B-A3B",
+   "detail": "35B, 3B active, NVFP4, 23 GB",
+   "note": "vLLM, stretched from 256k, 16-bit cache",
+   "model": "qwen3.6-35b-a3b",
+   "window": 1010000,
+   "decode_tps": 78.2,
+   "prefill_tps": 2897,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 92710,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 32,
+     "finish": "tool_calls",
+     "written": 454
+    },
+    {
+     "tokens": 253171,
+     "right": 3,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 102,
+     "finish": "tool_calls",
+     "written": 454
+    },
+    {
+     "tokens": 519125,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 308,
+     "finish": "tool_calls",
+     "written": 567
+    },
+    {
+     "tokens": 759710,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 456,
+     "finish": "tool_calls",
+     "written": 783
+    },
+    {
+     "tokens": 960042,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 511,
+     "finish": "tool_calls",
+     "written": 803
+    }
+   ],
+   "date": "2026-10-15"
+  },
+  {
    "label": "qwen3.5-122b",
    "title": "Qwen3.5-122B-A10B",
    "detail": "122B, 10B active, NVFP4, 84 GB",
@@ -459,50 +520,6 @@
    "date": "2026-10-14"
   },
   {
-   "label": "qwen3.6-35b-a3b",
-   "title": "Qwen3.6-35B-A3B",
-   "detail": "35B, 3B active, NVFP4, 23 GB",
-   "note": "vLLM, stretched from 256k, 16-bit cache",
-   "model": "qwen3.6-35b-a3b",
-   "window": 1010000,
-   "decode_tps": 77.3,
-   "prefill_tps": 2897,
-   "thinking": true,
-   "tool_call": true,
-   "tool_loop": true,
-   "recall": [
-    {
-     "tokens": 92710,
-     "right": 3,
-     "of": 3,
-     "tool_call": true,
-     "seconds": 32
-    },
-    {
-     "tokens": 253171,
-     "right": 3,
-     "of": 3,
-     "tool_call": true,
-     "seconds": 113
-    },
-    {
-     "tokens": 519125,
-     "right": 2,
-     "of": 3,
-     "tool_call": true,
-     "seconds": 316
-    },
-    {
-     "tokens": 1004586,
-     "right": 1,
-     "of": 3,
-     "tool_call": true,
-     "seconds": 1029
-    }
-   ],
-   "date": "2026-10-14"
-  },
-  {
    "label": "seed-oss-36b",
    "title": "Seed-OSS-36B",
    "detail": "dense 36B, 8-bit GGUF, 38 GB",
@@ -544,42 +561,6 @@
     }
    ],
    "date": "2026-10-15"
-  },
-  {
-   "label": "nemotron-3.5-lightning",
-   "title": "Nemotron 3.5 Lightning",
-   "detail": "30B, 3B active, NVFP4, 22 GB",
-   "lab": "NVIDIA",
-   "note": "native window, FP8 cache",
-   "window": 1048576,
-   "decode_tps": 136.5,
-   "prefill_tps": 1290,
-   "thinking": true,
-   "tool_call": true,
-   "tool_loop": true,
-   "recall": [
-    {
-     "tokens": 102133,
-     "right": 3,
-     "of": 3
-    },
-    {
-     "tokens": 232133,
-     "right": 1,
-     "of": 3
-    },
-    {
-     "tokens": 482134,
-     "right": 1,
-     "of": 3
-    },
-    {
-     "tokens": 986135,
-     "right": 1,
-     "of": 3
-    }
-   ],
-   "date": "2026-10-14"
   },
   {
    "label": "deepseek-v4-flash-dspark",
@@ -667,6 +648,67 @@
     }
    ],
    "date": "2026-10-14"
+  },
+  {
+   "label": "nemotron-3.5-lightning",
+   "title": "Nemotron 3.5 Lightning",
+   "detail": "30B, 3B active, NVFP4, 22 GB",
+   "note": "vLLM, 16-bit cache",
+   "model": "nemotron-3.5-lightning",
+   "window": 1048576,
+   "decode_tps": 123.6,
+   "prefill_tps": 2411,
+   "thinking": true,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 89211,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 37,
+     "finish": "tool_calls",
+     "written": 2472
+    },
+    {
+     "tokens": 253349,
+     "right": 1,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 66,
+     "finish": "tool_calls",
+     "written": 462
+    },
+    {
+     "tokens": 520550,
+     "right": 1,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 178,
+     "finish": "tool_calls",
+     "written": 364
+    },
+    {
+     "tokens": 759615,
+     "right": 1,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 237,
+     "finish": "tool_calls",
+     "written": 345
+    },
+    {
+     "tokens": 991455,
+     "right": 1,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 297,
+     "finish": "tool_calls",
+     "written": 341
+    }
+   ],
+   "date": "2026-10-15"
   },
   {
    "label": "nemotron-puzzle-75b",

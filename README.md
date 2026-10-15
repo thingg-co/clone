@@ -71,14 +71,14 @@ has it:
 | 5 | Qwen3.8-27B, 16-bit cache (dense 27B, NVFP4, 22 GB) | 950k, stretched from 256k, 16-bit cache | 507k | 97k 3/3, 245k 3/3, 507k 3/3 | yes | 12 tok/s | 920 tok/s |
 | 6 | Qwen3.5-122B-A10B, FP8 cache (122B, 10B active, NVFP4, 84 GB) | 1.01M, vLLM, stretched from 256k, FP8 cache | 519k | 93k 3/3, 253k 3/3, 519k 3/3, 760k 1/3, 960k 0/3 | yes | 14 tok/s | 1,030 tok/s |
 | 7 | DeepSeek V4 Flash, REAP 200B (200B of 284B kept, 13B active, 3-bit GGUF, 93 GB) | 1.05M, llama.cpp, 16-bit cache, reasoning effort max | 255k | 61k 3/3, 255k 3/3, 501k 2/3, 751k 2/3, 985k 3/3 | yes | 17 tok/s | 360 tok/s |
-| 8 | Qwen3.5-122B-A10B (122B, 10B active, NVFP4, 84 GB) | 500k, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 492k 2/3 | yes | 14 tok/s | 1,042 tok/s |
-| 9 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
-| 10 | Qwen3.6-35B-A3B (35B, 3B active, NVFP4, 23 GB) | 1.01M, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 519k 2/3, 1M 1/3 | yes | 77 tok/s | 2,897 tok/s |
+| 8 | Qwen3.6-35B-A3B (35B, 3B active, NVFP4, 23 GB) | 1.01M, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 519k 2/3, 760k 2/3, 960k 2/3 | yes | 78 tok/s | 2,897 tok/s |
+| 9 | Qwen3.5-122B-A10B (122B, 10B active, NVFP4, 84 GB) | 500k, vLLM, stretched from 256k, 16-bit cache | 253k | 93k 3/3, 253k 3/3, 492k 2/3 | yes | 14 tok/s | 1,042 tok/s |
+| 10 | Qwen3.8-Flash-Next (125B, 6B active, NVFP4, 133 GB) | 524k, stretched from 256k, FP8 cache; past 256k it returns the neighbouring record | 253k | 93k 3/3, 253k 3/3, 411k 2/3, 505k 2/3, 516k 2/3 | yes | 44 tok/s | 2,650 tok/s |
 | 11 | Seed-OSS-36B (dense 36B, 8-bit GGUF, 38 GB) | 490k, llama.cpp, 8-bit cache | 253k | 93k 3/3, 253k 3/3, 457k 0/3 | yes | 6 tok/s | 114 tok/s |
-| 12 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, native window, FP8 cache | 102k | 102k 3/3, 232k 1/3, 482k 1/3, 986k 1/3 | yes | 136 tok/s | 1,290 tok/s |
-| 13 | DeepSeek V4 Flash, 2-bit with DSpark (284B, 13B active, 2-bit GGUF and an 8-bit draft, 108 GB) | 131k, llama.cpp, 16-bit cache, reasoning effort max | 55k | 55k 3/3 | yes | 44 tok/s | 326 tok/s |
-| 14 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
-| 15 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
+| 12 | DeepSeek V4 Flash, 2-bit with DSpark (284B, 13B active, 2-bit GGUF and an 8-bit draft, 108 GB) | 131k, llama.cpp, 16-bit cache, reasoning effort max | 55k | 55k 3/3 | yes | 44 tok/s | 326 tok/s |
+| 13 | Laguna S 2.1 (118B, 8B active, NVFP4, 100 GB) | 500k, trained to 1M, 500k fits here, FP8 cache; thinks on some requests only | none | 93k 2/3, 253k 2/3, 411k 1/3 | tool loop only | 12 tok/s | 1,520 tok/s |
+| 14 | Nemotron 3 Super (120B, 12B active, NVFP4, 80 GB) | 1M, native window, FP8 cache | none | 93k 2/3, 235k 1/3, 489k 1/3 | yes | 16 tok/s | 1,045 tok/s |
+| 15 | Nemotron 3.5 Lightning (30B, 3B active, NVFP4, 22 GB) | 1.05M, vLLM, 16-bit cache | none | 89k 2/3, 253k 1/3, 521k 1/3, 760k 1/3, 991k 1/3 | yes | 124 tok/s | 2,411 tok/s |
 | 16 | Nemotron-Labs-3 Puzzle 75B (75B, 9B active, NVFP4, 54 GB) | 1M, vLLM, 16-bit cache | none | 89k 2/3, 253k 1/3, 521k 1/3, 760k 0/3, 950k 0/3 | yes | 20 tok/s | 1,565 tok/s |
 | 17 | Nemotron-Cascade-2 30B-A3B (30B, 3B active, 8-bit GGUF, 34 GB) | 1.05M, llama.cpp, 16-bit cache | none | 89k 2/3, 253k 0/3, 521k 0/3, 760k 0/3, 991k 0/3 | yes | 58 tok/s | 1,821 tok/s |
 | 18 | Kimi Linear 48B-A3B (48B, 3B active, 8-bit GGUF, 52 GB) | 1.05M, llama.cpp, 16-bit cache | none | 61k 0/3, 256k 2/3, 502k 0/3, 751k 0/3, 986k 0/3 | tool loop only | 58 tok/s | 1,112 tok/s |
@@ -111,8 +111,11 @@ to be tested each time:
 - Qwen3.8-Flash-Next attends sparsely and loses its place past the trained
   length. A factor of 2 with a 524k window does better than a factor of 4 with
   558k (2/3 against 0/3 at about 517k). Neither is exact.
-- Qwen3.6-35B-A3B, small and fast at 77 tok/s, stayed exact at 253k with a
-  factor of 4, then got 2/3 at 519k and 1/3 at 1M.
+- Qwen3.6-35B-A3B, small and fast at 78 tok/s, stayed exact at 253k with a
+  factor of 4, then got 2/3 at 519k, 760k and 960k when measured again. Each
+  miss came from a record whose number looks like the one asked for: locker
+  13328's code for 9338, 8536's for 13486 and 33646's for 33654. The first
+  run got 1/3 at 1M.
 - Qwen3.5-122B-A10B stayed exact at 253k stretched to 500k with a 16-bit
   cache, and at 519k stretched to 1.01M with an FP8 cache. Past that it came
   apart: one of three at 760k, and none at 960k, where even locker 137 came
@@ -200,6 +203,13 @@ locker 1373's code for 137, 899's for 4919 and 861's for 9611. At 521k and
 760k it sent the locker numbers back as the codes. At 991k it began a tool
 call with the three locker numbers and then repeated two codes until its
 32,768 tokens ran out.
+
+Lightning, measured again the same way with a 16-bit cache, did worse than
+in its first run, which had an FP8 cache and got all three at 102k. This time
+it got two of three at 89k, and from 253k to 991k only locker 137 came back
+right. The wrong codes come from records whose numbers share most of their
+digits with the one asked for: locker 919's code for 4919, 911's for 9611,
+1167's for 19167 and 3595's for 35985.
 
 Long prompts cost time. Flash-Next reads about 2,500 tok/s, so a cold 500k
 prompt takes under four minutes. The dense 27B reads 900 tok/s for the first
@@ -386,7 +396,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.28.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.29.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
