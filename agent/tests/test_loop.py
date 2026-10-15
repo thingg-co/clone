@@ -120,3 +120,18 @@ def test_subagent(tmp_path, ui):
     # the child could not spawn further subagents and only had read-only tools
     child_request = client.requests[1]
     assert "Subagent brief" in child_request[0]["content"]
+
+
+def test_instruction_files_are_read_again_after_compaction_and_clear(tmp_path, ui, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    (tmp_path / "CLAUDE.md").write_text("Use tabs.")
+    agent = make_agent(tmp_path, FakeClient([Turn(text="ok")]), ui)
+    assert "Use tabs." in agent.messages[0]["content"]
+    agent.run_turn("hi")
+    (tmp_path / "CLAUDE.md").write_text("Use tabs.\n\n- The build runs on omega.")
+    assert "The build runs on omega." not in agent.messages[0]["content"]  # read when the session starts
+    agent.compact()
+    assert "The build runs on omega." in agent.messages[0]["content"]
+    (tmp_path / "CLAUDE.md").write_text("Use spaces.")
+    agent.reset()
+    assert "Use spaces." in agent.messages[0]["content"] and "Use tabs." not in agent.messages[0]["content"]

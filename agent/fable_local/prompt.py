@@ -11,7 +11,9 @@ from pathlib import Path
 from . import prompts, thinking
 from .config import Settings
 
-INSTRUCTION_FILES = ("AGENTS.md", "CLAUDE.md", "FABLE.md")
+# Per directory, in this order: the shared files, Claude Code's other place for its file, then
+# the personal one that stays out of git.
+INSTRUCTION_FILES = ("AGENTS.md", "CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md", "FABLE.md")
 MAX_INSTRUCTION_CHARS = 20_000
 
 

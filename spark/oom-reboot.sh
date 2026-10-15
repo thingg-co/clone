@@ -5,8 +5,8 @@
 #   sudo spark/oom-reboot.sh install     # or uninstall
 #   spark/oom-reboot.sh status
 #
-# On 2026-10-15 a model server ran the Spark out of memory four times, and each time the
-# machine hung, for minutes up to four and a half hours, because the OOM killer acted late
+# On 2026-10-15 the Spark ran out of memory four times, with model servers, downloads and
+# another job's training competing for it, and each time the machine hung, for minutes up to four and a half hours, because the OOM killer acted late
 # or never. install sets up four ways to a reboot:
 #   - the OOM killer panics instead of picking a process (vm.panic_on_oom), and a panic
 #     reboots after 10 seconds (kernel.panic);

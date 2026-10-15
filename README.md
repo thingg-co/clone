@@ -364,7 +364,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.25.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.26.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -465,11 +465,20 @@ refused; `FORCE=1` skips the check and the wait.
 
 Once loaded, a model must leave `SAFETY_GB` free, 10 GB unless
 `config/spark.env` says otherwise. A switch from the page, `service.sh` or
-`vllm.sh` stops a model that leaves less, and says so. Long prompts need
-memory on top of what a model holds at idle: GLM-5.3-Flash started a 144k
-prompt with 2 GB free and took the Spark to none within a minute. While a bake
-measures a model it also watches the memory and stops the server if it stays
-under `GUARD_GB` (3 GB) for four seconds.
+`vllm.sh` stops a model that leaves less, and says so. While a bake measures
+a model it also watches the memory and stops the server if it stays under
+`GUARD_GB` (3 GB) for four seconds.
+
+Other jobs on the Spark can take memory after a model has loaded. Some look at
+what is free once, when they start, and allocate it minutes later after
+compiling, so a model loaded in between gets caught short. That is what hung
+the Spark under GLM-5.3-Flash: it was 61% into a 144k prompt, with free memory
+flat at 2 GB, when another job's first training step took the rest. The bake
+gives way to the jobs in `NEIGHBOURS` (`steel.service` and `flint-run.service`
+unless set otherwise). While one of them is running it stops its server and
+loads nothing. It also makes room five minutes (`LEAD_MIN`) before a timer in
+`NEIGHBOUR_TIMERS` fires (`flint.timer`), and measures again later the model
+it stopped.
 
 When the Spark ran out of memory it did not recover by itself: the kernel kept
 swapping and the GPU driver's allocations failed, and the OOM killer acted
@@ -541,13 +550,13 @@ licenses.
   that precision (950k tokens) has no headroom over a prompt that fills the
   window, so that profile stops at 900k, and its 900k step is queued.
 - Running the bake-off: Seed-OSS-36B, Nemotron-Cascade-2, dots3-note and
-  K2-Horizon MoVA are queued on the Spark. Then DeepSeek V4
-  Flash runs at 2 bits again, to see whether it keeps its 1M window with the
-  10 GB margin, and on ds4. After that, the models measured before run again
-  with `scripts/bench.py`, Flash-Next included. GLM-5.3-Flash (2-bit, and
-  pruned at 4-bit) stays out until it is clear why a 144k prompt ran the
-  Spark out of memory. 0xSero's single-Spark DeepSeek build is not in this
-  round. Clef and Clef-Flash get `scripts/clef-test.py`, the same records as
+  K2-Horizon MoVA are queued on the Spark. Then DeepSeek V4 Flash runs at 2
+  bits again, to see whether it keeps its 1M window with the 10 GB margin,
+  and on ds4. GLM-5.3-Flash follows, whole at 2 bits and pruned at 4 bits.
+  The Spark hung during its 144k prompt, but another job's training caused
+  that, not the model. After that, the models measured before run again with
+  `scripts/bench.py`, Flash-Next included. 0xSero's single-Spark DeepSeek
+  build is not in this round. Clef and Clef-Flash get `scripts/clef-test.py`, the same records as
   multiple choice and as claims to check, once their 64k profiles have been
   tried.
   Larger models from the same labs (DeepSeek V4.1 Flash at 510 GB, MiniMax

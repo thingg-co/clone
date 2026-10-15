@@ -61,8 +61,15 @@ user's standing instructions; put your own in `user.local.md`, which replaces
 it and is ignored by git), `thinking.md` (the `<think>` protocol and one section
 per effort level), `subagent.md`, `compact.md` and `tools.md` (one section
 per tool, parsed into the tool descriptions the model sees). Edit them freely;
-nothing else needs to change. Project files named `AGENTS.md`, `CLAUDE.md` or
-`FABLE.md` in the working directory or its parents are appended at startup.
+nothing else needs to change.
+
+Instruction files are appended to the system prompt: `~/.claude/CLAUDE.md`,
+then `AGENTS.md`, `CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md` and
+`FABLE.md` in the working directory and each of its parents, outermost first.
+They are read when a session starts and again after a compaction or `/clear`,
+which cost the server its cache anyway, so an edit made during a session
+holds from the next one of those. Asked to remember something for later
+sessions, the agent adds it to the project's `CLAUDE.md`.
 
 Slash commands in the session: `/help`, `/compact`, `/clear`, `/tokens`,
 `/model`, `/effort`, `/think`, `/yolo`, `/tools`, `/todos`, `/cwd`, `/system`.

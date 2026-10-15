@@ -80,7 +80,11 @@ class Agent:
     def set_effort(self, level: str) -> bool:
         """Change the reasoning effort. True if the system prompt had to change (the server's prefix cache is lost)."""
         self.settings.reasoning_effort = level
-        if self.depth:
+        return self.refresh_system_prompt()
+
+    def refresh_system_prompt(self) -> bool:
+        """Rebuild the system prompt, reading the instruction files again. True if it changed."""
+        if self.depth:  # a subagent keeps the prompt it was given
             return False
         new = build_system_prompt(self.settings, self.cwd, self.client.model)
         changed = new != self.messages[0]["content"]
@@ -241,6 +245,9 @@ class Agent:
         ]
         if last_role == "tool":  # compacted in the middle of a turn
             self.messages.append({"role": "user", "content": "Continue the task described in the summary from its next step."})
+        # The server reads everything again after this anyway, so pick up any instruction file
+        # edited during the session (CLAUDE.md and the rest) at no extra cost.
+        self.refresh_system_prompt()
         if self.session:
             self.session.append({"type": "compacted"})
             for m in self.messages[1:]:
@@ -251,6 +258,7 @@ class Agent:
 
     def reset(self) -> None:
         self.messages = [self.messages[0]]
+        self.refresh_system_prompt()
         self.last_usage = {}
         self._floor = 1
         self.ctx.state.clear()

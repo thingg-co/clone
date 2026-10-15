@@ -13,7 +13,8 @@
 # Progress goes to logs/bake.log, each model's run to logs/bench-<profile>.log and the
 # results to run/results.jsonl. run/bake.state names the model being measured, for the
 # control page. A download is tried three times; a model that still fails to download, or
-# fails to start, is logged and skipped.
+# fails to start, is logged and skipped. The bake gives way to the other jobs on the box
+# (give_way and make_room below), and measures again a model it stopped for them.
 set -uo pipefail
 . "$(dirname "$0")/common.sh"
 load_env
@@ -75,12 +76,75 @@ serve() {  # backend profile long
     done
 }
 
-# While a model is measured: stop the servers if free memory stays under GUARD_GB for 4 s.
-# Each model starts with SAFETY_GB free, but a long prompt can need more memory than the
-# model held at idle; GLM-5.3-Flash took the Spark from 2 GB free to none within a minute.
-guard() {  # item
-    local low=0
+# The other jobs on this box (steel, and flint on its weekday timer) look at the free memory
+# once when they start and allocate it minutes later, after compiling. A model loaded in
+# that gap runs the Spark out of memory when they do: on 2026-10-15 at 06:45 steel's first
+# training step hung the Spark with GLM-5.3-Flash loaded, and the hang was blamed on GLM at
+# first. Steel also restarts itself every 30 s until it finds the memory free. So the bake
+# gives way: while one of them is up it stops its server and loads nothing.
+# NEIGHBOURS="" turns this off.
+neighbours_up() {  # the units in NEIGHBOURS that are running or about to
+    local u
+    for u in ${NEIGHBOURS-steel.service flint-run.service}; do
+        case "$(systemctl --user is-active "$u" 2>/dev/null)" in
+            active|activating|reloading) printf '%s ' "$u" ;;
+        esac
+    done
+}
+give_way() {  # what is waiting: returns once no neighbour is up, with the server stopped if one was
+    local busy
+    busy=$(neighbours_up)
+    [ -n "$busy" ] || return 0
+    log "$1: ${busy% } is running; stopping the server until it is done"
+    systemctl --user stop llama-server.service vllm.service 2>/dev/null || true
+    while [ -n "$(neighbours_up)" ]; do sleep 60; done
+    log "$1: ${busy% } is done; going on"
+}
+
+# Flint starts from a timer on weekdays (19:45) and needs most of the memory, so the bake
+# makes room LEAD_MIN minutes before a timer in NEIGHBOUR_TIMERS fires: it stops its server,
+# stopping a measurement if one is running (that model is measured again afterwards), lets
+# the timer fire and then gives way to what it started. NEIGHBOUR_TIMERS="" turns this off.
+timer_due() {  # prints "epoch timer" for the first timer that fires within LEAD_MIN minutes
+    local t next at now
+    now=$(date +%s)
+    for t in ${NEIGHBOUR_TIMERS-flint.timer}; do
+        next=$(systemctl --user show "$t" -p NextElapseUSecRealtime --value 2>/dev/null)
+        [ -n "$next" ] || continue   # no such timer, or it is stopped
+        at=$(date -d "$next" +%s 2>/dev/null) || continue
+        if [ "$at" -gt "$now" ] && [ $((at - now)) -le $((${LEAD_MIN:-5} * 60)) ]; then
+            echo "$at $t"
+            return 0
+        fi
+    done
+    return 1
+}
+make_room() {  # what is waiting
+    local due at
+    due=$(timer_due) || return 0
+    at=${due%% *}
+    log "$1: ${due#* } fires at $(date -d "@$at" +%H:%M); stopping the server until it has run"
+    systemctl --user stop llama-server.service vllm.service 2>/dev/null || true
+    while [ "$(date +%s)" -lt $((at + 120)) ]; do sleep 15; done   # what it starts checks the memory within seconds
+    give_way "$1"
+}
+
+# While a model is measured: stop the measurement and the server when a timer is about to
+# fire (above), and stop the servers if free memory stays under GUARD_GB for 4 s. Each model
+# starts with SAFETY_GB free, but a long prompt can need more memory than it held at idle.
+guard() {  # item bench-pid
+    local low=0 i=0 kids
     while sleep 2; do
+        i=$((i + 1))
+        if [ $((i % 15)) = 0 ] && timer_due >/dev/null; then
+            warn "$1: a timer is about to fire; stopping the measurement to make room"
+            touch "$RUN_DIR/bake.interrupted"
+            kids=$(pgrep -P "$2")
+            # shellcheck disable=SC2086
+            kill "$2" $kids 2>/dev/null   # bench.py writes its result at the end, so nothing is recorded
+            systemctl --user stop llama-server.service vllm.service 2>/dev/null
+            return
+        fi
         if [ "$(mem_available_gb)" -lt "${GUARD_GB:-3}" ]; then
             low=$((low + 1))
             if [ "$low" -ge 2 ]; then
@@ -129,6 +193,8 @@ while :; do
         [ "$try" = 3 ] || { warn "$item: download attempt $try did not work; trying again in a minute"; sleep 60; }
     done
     [ "$pulled" = 1 ] || { warn "$item: download failed, skipping"; continue; }
+    make_room "[$of] $item"
+    give_way "[$of] $item"
 
     prepare=$(field "$backend" "$key" PREPARE)
     if [ -n "$prepare" ]; then   # a step that needs the memory to itself, such as repacking weights
@@ -145,23 +211,40 @@ while :; do
         else journalctl --user -u llama-server.service -n 300 --no-pager -o cat > "$LOG_DIR/bake-$key-start.log" 2>&1; fi
         continue
     fi
+    # One that started while the model loaded saw the memory free and takes it once it has
+    # compiled. Flint refuses within seconds when it does not see enough, so allow a minute.
+    if [ -n "$(neighbours_up)" ] && sleep 60 && [ -n "$(neighbours_up)" ]; then
+        n=$((n - 1))   # measure this one again afterwards
+        give_way "[$of] $item"
+        continue
+    fi
     if [ "$backend" = llama ]; then  # the window and memory llama.cpp settled on
         journalctl --user -u llama-server.service -n 400 --no-pager -o cat 2>/dev/null |
             grep -i -E "n_ctx|fit|KV buffer|compute buffer|model buffer|failed" | tail -20 > "$LOG_DIR/bake-$key-start.log"
     fi
     log "[$of] $item: serving, $(mem_available_gb) GB of memory left; measuring (log: logs/bench-$key.log)"
-    guard "$item" &
-    guard_pid=$!
+    rm -f "$RUN_DIR/bake.interrupted"
     if [ "$(field "$backend" "$key" KIND)" = decision ]; then   # writes no text: the checker version of the test
         python3 -I -u "$ROOT/scripts/clef-test.py" --base-url "http://127.0.0.1:$PORT" --api-key "${API_KEY:-local}" \
             --model "$(field "$backend" "$key" ALIAS)" --label "$key" --title "$(field "$backend" "$key" TITLE)" \
-            --detail "$(field "$backend" "$key" DETAIL)" > "$LOG_DIR/bench-$key.log" 2>&1
+            --detail "$(field "$backend" "$key" DETAIL)" > "$LOG_DIR/bench-$key.log" 2>&1 &
     else
         python3 -I -u "$ROOT/scripts/bench.py" --base-url "http://127.0.0.1:$PORT/v1" --api-key "${API_KEY:-local}" \
             --label "$key" --title "$(field "$backend" "$key" TITLE)" --detail "$(field "$backend" "$key" DETAIL)" \
-            --note "$(note_for "$backend" "$key" "$long")" > "$LOG_DIR/bench-$key.log" 2>&1
+            --note "$(note_for "$backend" "$key" "$long")" > "$LOG_DIR/bench-$key.log" 2>&1 &
     fi
+    bench_pid=$!
+    guard "$item" "$bench_pid" &
+    guard_pid=$!
+    wait "$bench_pid"
     kill "$guard_pid" 2>/dev/null; wait "$guard_pid" 2>/dev/null
+    if [ -f "$RUN_DIR/bake.interrupted" ]; then
+        rm -f "$RUN_DIR/bake.interrupted"
+        log "[$of] $item: stopped to make room; it is measured again afterwards"
+        n=$((n - 1))
+        make_room "[$of] $item"
+        continue
+    fi
     log "[$of] $item: $(tail -n 1 "$LOG_DIR/bench-$key.log")"
 done
 
@@ -172,6 +255,7 @@ if [ -n "${FINAL:-}" ]; then
     IFS=: read -r backend key long <<< "$FINAL"
     echo "$FINAL final $(date +%s) $$" > "$STATE"
     log "queue done; serving $FINAL"
+    give_way "$FINAL"
     serve "$backend" "$key" "${long:-0}" || warn "$FINAL did not start"
 fi
 log "bake-off finished"

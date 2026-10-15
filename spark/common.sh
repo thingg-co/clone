@@ -23,8 +23,8 @@ load_env() {
     LLAMA_DIR=${LLAMA_DIR:-$ROOT/llama.cpp}
     LOG_DIR=${LOG_DIR:-$ROOT/logs}
     RUN_DIR=${RUN_DIR:-$ROOT/run}
-    # Memory (GB) every model must leave free once loaded. With 3 to 5 GB left, long prompts
-    # ran the Spark out of memory more than once.
+    # Memory (GB) every model must leave free once loaded. With 3 to 5 GB left, the Spark ran
+    # out of memory more than once.
     SAFETY_GB=${SAFETY_GB:-10}
     mkdir -p "$LOG_DIR" "$RUN_DIR"
 }
