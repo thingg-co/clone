@@ -6,7 +6,7 @@ BACKEND ?= vllm
 MODEL ?= gpt-oss-120b
 ARGS ?=
 
-.PHONY: help config deploy bootstrap ssh status start stop restart logs switch vllm-switch pull bench tunnel panel smoke agent-install agent clone-command doctor test
+.PHONY: help config deploy bootstrap ssh status start stop restart logs switch vllm-switch pull bench tunnel panel chat smoke agent-install agent clone-command doctor test
 
 help: ## this list
 	@grep -hE '^[a-z -]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -54,6 +54,9 @@ tunnel: ## forward the model ports to localhost (leave running)
 
 panel: ## open the control page on the Spark
 	open http://$(strip $(SPARK_HOST)):$(or $(strip $(PANEL_PORT)),8088)
+
+chat: ## open the chat page on the Spark (fable in the browser, same sessions as clone)
+	open http://$(strip $(SPARK_HOST)):8089
 
 smoke: ## tool-calling smoke test through the tunnel
 	python3 scripts/smoke-test.py --base-url http://localhost:$(PORT)/v1 --api-key $(API_KEY)

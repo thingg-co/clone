@@ -50,6 +50,9 @@ class Settings:
     subagent_base_url: str = ""          # empty: same server as the main model
     subagent_model: str = ""
     subagent_api_key: str = ""
+    web_host: str = ""                   # fable --web listens here; empty: 127.0.0.1, this machine only
+    web_port: int = 8089
+    projects_dir: str = "~/Development"  # the web page offers the folders in it for a new chat
     name: str = "Fable"                  # how the agent refers to itself in the system prompt
     system_prompt_extra: str = ""        # appended to the system prompt (project rules, style)
     extra_body: dict[str, Any] = field(default_factory=dict)  # merged into every request

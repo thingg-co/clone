@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 import time
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 from . import prompts, thinking
 from .client import Client, ContextOverflow, ToolCall, Turn
@@ -54,16 +55,41 @@ class Agent:
         self.ctx = ToolContext(cwd=self.cwd, agent=self)
         self.last_usage: dict[str, int] = {}
         self._floor = 1  # len(messages) right after the last compaction; blocks back-to-back compactions
+        self.owner = "the terminal"  # named in the lock, so the other side can say who has the session
 
     # ---- history ----------------------------------------------------------
     def load_history(self, messages: list[dict[str, Any]]) -> None:
         self.messages = [self.messages[0], *[m for m in messages if m.get("role") != "system"]]
         self.repair()
 
-    def _record(self, msg: dict[str, Any]) -> None:
+    def _record(self, msg: dict[str, Any], **extra: Any) -> None:
         self.messages.append(msg)
         if self.session:
-            self.session.add_message(msg)
+            self.session.add_message(msg, **extra)
+
+    @contextmanager
+    def hold(self) -> Iterator[None]:
+        """Have the session to ourselves: no other process can start a turn in it meanwhile, and
+        whatever it added since we last looked is picked up first. Raises SessionBusy."""
+        if self.session is None or self.depth:
+            yield
+            return
+        with self.session.turn(self.owner):
+            if self.session.changed_elsewhere():
+                self.reload()
+                self.ui.info(f"this session changed elsewhere; picked up its {len(self.messages) - 1} messages")
+            try:
+                yield
+            except BaseException:
+                self.repair()  # while the lock is still ours
+                raise
+
+    def reload(self) -> None:
+        """Take the history from the session file, which another process has added to."""
+        assert self.session is not None
+        self.load_history(self.session.messages())
+        self.last_usage = {}
+        self._floor = 1
 
     def repair(self) -> None:
         """Make the message list valid again after an interruption."""
@@ -94,6 +120,10 @@ class Agent:
 
     # ---- main loop ----------------------------------------------------------
     def run_turn(self, user_text: str) -> str:
+        with self.hold():
+            return self._run_turn(user_text)
+
+    def _run_turn(self, user_text: str) -> str:
         self._record({"role": "user", "content": user_text})
         final = ""
         overflows = 0
@@ -139,7 +169,9 @@ class Agent:
             inline = thinking.strip_think(turn.raw) != turn.raw  # the reasoning is already in the content
             if turn.reasoning and self.settings.send_reasoning_back and not inline:
                 msg["reasoning_content"] = turn.reasoning
-        self._record(msg)
+        # Reasoning the message does not carry is kept beside it in the session file, for the web page.
+        carried = msg.get("reasoning_content") or (content and thinking.strip_think(content) != content)
+        self._record(msg, reasoning=None if carried else turn.reasoning)
         if turn.finish_reason == "length":
             self.ui.warn("response was cut off at max_tokens")
         return turn

@@ -62,6 +62,7 @@ fi
 if [ "$BACKEND" = vllm ]; then VLLM_PROFILE="${VLLM_PROFILE:-qwen3.8-27b}" "$ROOT/spark/vllm.sh" install; fi
 
 systemctl --user restart clone-panel.service && log "control page on http://$(hostname).local:${PANEL_PORT:-8088} (make panel on the Mac)"
+systemctl --user restart clone-chat.service && log "chat page on http://$(hostname).local:8089 (make chat on the Mac)"
 
 # 6. the clone command: fable in whatever directory you are in, pointed at this server
 mkdir -p "$HOME/.local/bin"

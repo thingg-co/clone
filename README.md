@@ -380,6 +380,7 @@ Rerunning it is safe. The downloads are the slow part: this Spark gets 20 to
 Back on the Mac:
 
     make panel                        # control page at http://omega.local:8088
+    make chat                         # chat page at http://omega.local:8089
     make tunnel &                     # localhost:8080 (and :8081) -> Spark
     make agent-install
     make doctor                       # models, context window, tok/s, thinking and tool-call check
@@ -396,7 +397,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.30.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.31.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -466,6 +467,36 @@ and anyone on the network can open it.
 A profile switched from the page changes `config/spark.env` on the Spark,
 which is the copy that counts: `make deploy` sends the Mac's only when the
 Spark has none. `make vllm-switch` changes both.
+
+## Chat page
+
+The `clone-chat` unit runs `clone --web`, which is fable in the browser at
+http://omega.local:8089 (`make chat` opens it). It looks like ChatGPT or Claude
+on the web, with the chats down the side, and each chat is a fable session in a
+project folder on the Spark, with the same tools, thinking levels and permission
+prompts as the terminal. A new chat asks which folder; the list is the folders
+used lately and then the rest of `~/Development`.
+
+The page and the `clone` command share the session files in `agent/.fable/`.
+Terminal sessions show up on the page, `clone -c` in a project folder resumes
+the chat last used there whichever side it was on, and Up in the message box
+brings back what was typed in either. One side at a time can run a turn in a
+session. The other says the session is busy until the turn is done, then picks
+up what was added before it goes on. Each side builds its own system prompt, so
+when a session moves from one to the other the model server may have to read
+the whole conversation again.
+
+Each chat runs its agent in a process of its own, so Stop works the way Ctrl-C
+does, the model request or the shell command included. Slash commands work in
+the message box too; `/clear` starts a new chat.
+
+Like the control page it starts at boot, needs no model to be running, and
+listens where `PANEL_HOST` says, so it is on the LAN with the shipped config.
+There is no login. Anyone who can reach port 8089 can have the agent run
+commands on the Spark as you. `PANEL_HOST=127.0.0.1` keeps both pages to the
+SSH tunnel, which forwards 8089 as well. Elsewhere, `fable --web` serves the
+same page for the sessions on that machine, on 127.0.0.1 unless `--host` says
+otherwise.
 
 ## Day to day
 

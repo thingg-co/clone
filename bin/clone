@@ -4,6 +4,7 @@
 #   clone                  # fable here; in your home folder it offers ~/Development first
 #   clone -c               # resume the last session here; any fable option works (clone --help)
 #   clone <git url>        # clone the repository into ~/Development and start in it
+#   clone --web            # the chat page, on the same sessions (the clone-chat unit runs this)
 #
 # `make clone-command` (Mac) and spark/bootstrap.sh (Spark) link this file into
 # ~/.local/bin. On the Spark it talks to the server on localhost, elsewhere to SPARK_HOST
@@ -105,11 +106,14 @@ if [ -z "${TMUX:-}" ] && [ -n "${SSH_CONNECTION:-}" ] && [ "${CLONE_TMUX:-1}" !=
 fi
 
 if [ -z "${FABLE_BASE_URL:-}" ]; then
-    if curl -s -m 2 -o /dev/null "http://127.0.0.1:$PORT/v1/models" 2>/dev/null; then
+    # On the Spark the server is local even while no model is up (the chat page starts at boot).
+    if [ -d "$ROOT/.tools" ] || curl -s -m 2 -o /dev/null "http://127.0.0.1:$PORT/v1/models" 2>/dev/null; then
         FABLE_BASE_URL=http://127.0.0.1:$PORT/v1    # on the Spark, or through make tunnel
     else
         FABLE_BASE_URL=http://${SPARK_HOST:-omega.local}:$PORT/v1
     fi
 fi
 export FABLE_BASE_URL FABLE_API_KEY=${FABLE_API_KEY:-${API_KEY:-local}}
+# clone --web: the chat page is on the LAN when the control page is (PANEL_HOST in spark.env)
+export FABLE_WEB_HOST=${FABLE_WEB_HOST:-${PANEL_HOST:-}} FABLE_PROJECTS_DIR=${FABLE_PROJECTS_DIR:-$PROJECTS}
 exec uv run --quiet --project "$ROOT/agent" fable "$@"

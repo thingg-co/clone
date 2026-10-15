@@ -17,7 +17,7 @@ from .client import Client, ContextOverflow
 from .config import Settings, load_settings
 from .loop import Agent
 from .render import UI, fmt_tokens
-from .session import Session
+from .session import Session, SessionBusy, load_titles
 from .tools.todo import render_todos
 
 COMMANDS = """\
@@ -54,6 +54,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--max-turns", type=int, help="tool rounds per user message")
     p.add_argument("--doctor", action="store_true", help="check the server: models, context, speed, tool calling")
     p.add_argument("--sessions", action="store_true", help="list saved sessions")
+    p.add_argument("--web", action="store_true", help="serve the chat page, which shares sessions with the terminal")
+    p.add_argument("--host", help="with --web: address to listen on (default 127.0.0.1; 0.0.0.0 for the LAN)")
+    p.add_argument("--port", type=int, help="with --web: port (default 8089)")
     p.add_argument("--version", action="version", version=f"fable {__version__}")
     return p
 
@@ -69,16 +72,29 @@ def main(argv: list[str] | None = None) -> int:
         "show_thinking": True if args.think else None,
         "permission_mode": "auto" if args.yes else ("readonly" if args.readonly else None),
         "max_iterations": args.max_turns,
+        "web_host": args.host,
+        "web_port": args.port,
     }
     settings = load_settings(overrides)
     console = Console(highlight=False, soft_wrap=True)
     cwd = Path(args.cwd or os.getcwd()).resolve()
 
     if args.sessions:
-        for s in Session.list_all(settings.home)[:30]:
-            meta = s.meta()
-            console.print(f"{s.id}  {meta.get('model', '')}  {meta.get('cwd', '')}")
+        titles = load_titles(settings.home)
+        shown = 0
+        for s in Session.list_all(settings.home):
+            info = s.summary(titles)
+            if info["title"]:  # sessions where nothing was said are left out
+                console.print(f"{s.id}  {escape(info['title'])}  [dim]{escape(info['cwd'])}[/dim]")
+                shown += 1
+                if shown == 30:
+                    break
         return 0
+    if args.web:
+        from .web.server import serve
+        # Each chat's worker reads the config again from its project folder, as the terminal
+        # does there; the flags given here still win.
+        return serve(settings, {k: v for k, v in overrides.items() if v is not None and not k.startswith("web_")})
 
     client = Client(settings)
     info = client.probe()
@@ -135,6 +151,9 @@ def main(argv: list[str] | None = None) -> int:
         except KeyboardInterrupt:
             ui.warn("interrupted")
             return 130
+        except SessionBusy as e:
+            ui.error(f"a turn is running in this session in {e}; wait for it or start a new session")
+            return 2
         return 0
 
     return repl(agent, ui, settings, info)
@@ -177,6 +196,8 @@ def repl(agent: Agent, ui: UI, settings: Settings, info: dict) -> int:
             ui.turn_end()
             ui.warn("interrupted")
             agent.repair()
+        except SessionBusy as e:
+            ui.error(f"a turn is running in this session in {e}; try again when it is done (Up brings your message back)")
         except ContextOverflow as e:
             ui.error(f"context overflow even after compaction: {e}")
         except Exception as e:  # keep the session alive
@@ -193,7 +214,11 @@ def handle_command(line: str, agent: Agent, ui: UI, settings: Settings) -> bool 
     if cmd == "/help":
         ui.console.print(COMMANDS)
     elif cmd == "/compact":
-        agent.compact()
+        try:
+            with agent.hold():
+                agent.compact()
+        except SessionBusy as e:
+            ui.error(f"a turn is running in this session in {e}")
     elif cmd == "/clear":
         agent.reset()
         agent.session = Session.new(settings.home, agent.cwd, agent.client.model)

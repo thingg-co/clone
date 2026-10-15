@@ -101,7 +101,7 @@ footer p { margin: 0 0 8px; }
       </div>
       <div>
         <h3>fable</h3>
-        <p>A terminal agent in Python. Shell, file read, write and edit, search, web fetch, a task list and read-only subagents, behind a permission check. Five thinking levels, max by default, translated into whatever each model family calls them.</p>
+        <p>An agent in Python, in the terminal or in the browser. Shell, file read, write and edit, search, web fetch, a task list and read-only subagents, behind a permission check. Five thinking levels, max by default, translated into whatever each model family calls them. The chat page on the Spark looks like ChatGPT or Claude on the web and works on the same sessions as the terminal, so a conversation can move from one to the other.</p>
       </div>
       <div>
         <h3>A control page</h3>
@@ -337,6 +337,7 @@ spark/bootstrap.sh   <span class="c"># tools, container image, weights, services
 
 <span class="c"># back on your own machine</span>
 make panel           <span class="c"># the control page</span>
+make chat            <span class="c"># fable in the browser, same sessions as the terminal</span>
 make doctor          <span class="c"># context window, speed, thinking and tool calls</span>
 make agent           <span class="c"># fable in the current directory</span></pre>
     <p>The control page prints one command for Claude Code and one for fable, each ready to paste on any machine that can reach the Spark. Before trusting a model with a long prompt, run the recall test against it:</p>

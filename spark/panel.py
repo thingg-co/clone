@@ -37,7 +37,7 @@ from urllib.parse import parse_qs, urlparse
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = Path(__file__).with_name("panel.html")
 KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
-LOG_UNITS = ("vllm", "llama-server", "llama-sidekick", "clone-panel")
+LOG_UNITS = ("vllm", "llama-server", "llama-sidekick", "clone-panel", "clone-chat")
 
 
 def read_env(path: Path) -> dict:
