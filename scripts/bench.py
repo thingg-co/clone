@@ -60,8 +60,8 @@ class Server:
 
 def window_of(server: Server, model: str):
     for m in server.get("/models")["data"]:
-        if m["id"] == model and m.get("max_model_len"):  # vLLM
-            return int(m["max_model_len"])
+        if m["id"] == model and (m.get("max_model_len") or m.get("context_length")):  # vLLM, ds4
+            return int(m.get("max_model_len") or m["context_length"])
     try:  # llama.cpp
         return int(server.get("/props", root=True)["default_generation_settings"]["n_ctx"])
     except (urllib.error.URLError, KeyError, ValueError, OSError):

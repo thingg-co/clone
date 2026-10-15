@@ -179,6 +179,7 @@ memory share. `VLLM_PROFILE` and `VLLM_LONG` in `config/spark.env` pick one.
 | `qwen3.6-35b-a3b` | 35B with 3B active, small and fast | 256k native, 1.01M stretched |
 | `qwen3.5-122b`, `qwen3.5-122b-fp8` | 122B with 10B active, with a 16-bit or an FP8 cache | 256k native, 500k or 1.01M stretched |
 | `deepseek-v4-flash-spark` | DeepSeek V4 Flash in 0xSero's single-Spark build: pruned experts, 3-bit EXL3, DSpark draft, through a patched vLLM (below) | 262k at most |
+| `deepseek-v4-flash-ds4` | DeepSeek V4 Flash on ds4, an engine written for this one model, with antirez's 2-bit GGUF and the DSpark draft (below) | 1M |
 | `laguna-s-2.1` | Poolside's 118B coding model, trained to 1M | what its 93 GiB of weights leave room for |
 | `nemotron-3-super`, `nemotron-3.5-lightning` | native 1M windows that fail the recall test | 1M |
 | `nemotron-puzzle-75b` | Super cut down to 75B with 9B active and distilled at long context | 1M (the card's; its config says 256k) |
@@ -225,7 +226,7 @@ would fit. The launchers take 97% of that figure, write it to
 with it, and later starts go straight there. Delete the file to have the full
 window tried again.
 
-Four ways to serve, one port:
+Five ways to serve, one port:
 
 - vLLM in NVIDIA's DGX Spark container (`spark/vllm.sh`). Proper tool-call
   and reasoning parsers, prefix caching, and an Anthropic-style
@@ -245,6 +246,16 @@ Four ways to serve, one port:
   model's turn, so a start only loads. A profile can name such steps with
   `PULL` and `PREPARE`. The image serves with thinking off unless a request
   asks for it; the script starts it with thinking on at max effort.
+- DeepSeek V4 Flash through `spark/ds4.sh`, which builds
+  [ds4](https://github.com/antirez/ds4) (MIT), antirez's C and CUDA engine
+  for this one model, in [Entrpi's fork](https://github.com/Entrpi/ds4) for
+  the GB10, cloned under `third_party/` at the tag Entrpi's installer pins.
+  It runs only antirez's own GGUF builds. The 2-bit one is 81 GiB, and the
+  DSpark draft beside it is used without being asked for. It is reported to
+  read prompts at about 1,000 tok/s on one Spark, three times llama.cpp, and
+  its cache holds a full 1M window in about 4 GiB. It takes no API key and
+  has no `/health`. The vLLM profile runs it under `vllm.service` with
+  thinking on at max effort and a memory floor of `SAFETY_GB`.
 - llama.cpp built from source (`spark/serve.sh`, GGUF profiles in
   `config/models/`). This is how models whose release weights are larger
   than the machine run here at all, at 2 to 3 bits per weight. It reads each
@@ -263,6 +274,7 @@ Four ways to serve, one port:
     spark/vllm.sh              pull | serve | switch | install | stop | logs | image
     spark/flash-next.sh        Qwen3.8-Flash-Next through the pinned third-party recipe
     spark/deepseek-spark.sh    DeepSeek V4 Flash through 0xSero's single-Spark build
+    spark/ds4.sh               DeepSeek V4 Flash on ds4: fetch | build | serve
     spark/serve.sh             llama-server for a profile (main, sidekick, or any key)
     spark/service.sh           systemd user units for the llama.cpp instances
     spark/oom-reboot.sh        (sudo) reboot instead of hanging when memory runs out
@@ -330,7 +342,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.22.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.23.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.

@@ -88,11 +88,14 @@ check_margin() {
     log "${left} GB free with the model loaded (margin ${SAFETY_GB} GB)"
 }
 
-# Wait for an llama-server health endpoint. $1 = port, $2 = seconds (default 600).
+# Wait for a model server to answer. $1 = port, $2 = seconds (default 600). llama.cpp answers
+# 503 to everything while it loads, and vLLM opens its port only when it is ready. ds4 has no
+# /health, but it too opens its port only once the weights are loaded, so /v1/models will do.
 wait_healthy() {
     local port=$1 secs=${2:-600} i=0
     while [ "$i" -lt "$secs" ]; do
-        if curl -sf "http://127.0.0.1:$port/health" >/dev/null 2>&1; then return 0; fi
+        if curl -sf "http://127.0.0.1:$port/health" >/dev/null 2>&1 ||
+           curl -sf "http://127.0.0.1:$port/v1/models" >/dev/null 2>&1; then return 0; fi
         sleep 2; i=$((i + 2))
     done
     return 1

@@ -72,7 +72,7 @@ def main() -> int:
     with urllib.request.urlopen(urllib.request.Request(base + "/models", headers=headers), timeout=20) as r:
         listed = json.load(r)["data"]
     model = args.model or listed[0]["id"]
-    window = next((m.get("max_model_len") for m in listed if m["id"] == model), None)
+    window = next((m.get("max_model_len") or m.get("context_length") for m in listed if m["id"] == model), None)  # vLLM, ds4
     if window is None:  # llama.cpp reports its window under /props
         try:
             with urllib.request.urlopen(urllib.request.Request(base.removesuffix("/v1") + "/props", headers=headers), timeout=20) as r:

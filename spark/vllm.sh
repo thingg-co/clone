@@ -200,7 +200,8 @@ WorkingDirectory=$ROOT
 Environment=VLLM_PROFILE=$VLLM_PROFILE
 Environment=VLLM_LONG=${VLLM_LONG:-0}
 ExecStart=/usr/bin/env bash $ROOT/spark/vllm.sh serve
-ExecStop=/usr/bin/docker stop $NAME
+# A runner without a container (ds4) has nothing for docker to stop; systemd then ends it
+ExecStop=-/usr/bin/docker stop $NAME
 # Never enabled and never restarted, like llama-server.service: a server that died on the
 # Spark usually died of memory, and starting it again stalled the machine.
 Restart=no

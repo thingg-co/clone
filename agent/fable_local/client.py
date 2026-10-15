@@ -135,6 +135,9 @@ class Client:
                 if m.get("max_model_len"):           # vLLM
                     info["context"] = int(m["max_model_len"])
                     info["server"] = "vllm"
+                elif m.get("owned_by") == "ds4.c" and m.get("context_length"):
+                    info["context"] = int(m["context_length"])
+                    info["server"] = "ds4"
         except Exception as e:
             info["error"] = f"{type(e).__name__}: {e}"
             return info

@@ -376,9 +376,12 @@ def profiles(env: dict) -> list:
             "backend": "vllm", "key": f.stem, "served": p.get("SERVED_NAME", f.stem), "repo": repo, "extra_repos": extra,
             "ctx": to_int(p.get("MAX_LEN"), 0), "long_ctx": to_int(p.get("LONG_MAX_LEN")),
             "native_ctx": to_int(p.get("ROPE_ORIG")), "runner": bool(p.get("RUNNER")), "own_dir": bool(p.get("PULL")),
-            "thinking": "native" if p.get("REASONING_PARSER") else "prompted",
-            "tools": "vLLM parser " + p["TOOL_PARSER"] if p.get("TOOL_PARSER") else "none", "min_free_gb": to_int(p.get("MIN_FREE_GB"), 0),
-            "downloaded": (any((models / f.stem).rglob("*.safetensors")) if p.get("PULL")   # kept by its runner, not in the cache
+            # a runner other than vLLM (ds4) says what it does for itself
+            "thinking": p.get("THINKING") or ("native" if p.get("REASONING_PARSER") else "prompted"),
+            "tools": p.get("TOOLS") or ("vLLM parser " + p["TOOL_PARSER"] if p.get("TOOL_PARSER") else "none"),
+            "min_free_gb": to_int(p.get("MIN_FREE_GB"), 0),
+            "downloaded": (any((models / f.stem).rglob("*.safetensors")) or any((models / f.stem).glob("*.gguf"))
+                           if p.get("PULL")   # kept by its runner, not in the cache
                            else hf_complete(models / "hf-cache" / "hub" / ("models--" + repo.replace("/", "--")))),
             "downloading": any(fetching(r) for r in [repo, *extra]),
         })
@@ -425,7 +428,9 @@ def endpoint(port, key: str) -> dict:
             data = json.load(r).get("data", [])
         info["up"] = True
         info["models"] = [m.get("id") for m in data if m.get("id")]
-        info["context"] = next((int(m["max_model_len"]) for m in data if m.get("max_model_len")), None)
+        # vLLM says max_model_len, ds4 context_length
+        info["context"] = next((int(m.get("max_model_len") or m["context_length"]) for m in data
+                                if m.get("max_model_len") or m.get("context_length")), None)
         if info["context"] is None:  # llama.cpp reports it elsewhere
             with urllib.request.urlopen(urllib.request.Request(base + "/props", headers=headers), timeout=1.5) as r:
                 info["context"] = json.load(r).get("default_generation_settings", {}).get("n_ctx")
