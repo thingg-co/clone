@@ -687,6 +687,67 @@
    "date": "2026-10-14"
   },
   {
+   "label": "kimi-linear-48b",
+   "title": "Kimi Linear 48B-A3B",
+   "detail": "48B, 3B active, 8-bit GGUF, 52 GB",
+   "note": "llama.cpp, 16-bit cache",
+   "model": "kimi-linear-48b",
+   "window": 1048576,
+   "decode_tps": 57.7,
+   "prefill_tps": 1112,
+   "thinking": false,
+   "tool_call": true,
+   "tool_loop": true,
+   "recall": [
+    {
+     "tokens": 61181,
+     "right": 0,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 55,
+     "finish": "tool_calls",
+     "written": 50
+    },
+    {
+     "tokens": 255779,
+     "right": 2,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 399,
+     "finish": "tool_calls",
+     "written": 102
+    },
+    {
+     "tokens": 501785,
+     "right": 0,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 986,
+     "finish": "tool_calls",
+     "written": 50
+    },
+    {
+     "tokens": 750923,
+     "right": 0,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 1555,
+     "finish": "tool_calls",
+     "written": 50
+    },
+    {
+     "tokens": 985571,
+     "right": 0,
+     "of": 3,
+     "tool_call": true,
+     "seconds": 1974,
+     "finish": "tool_calls",
+     "written": 50
+    }
+   ],
+   "date": "2026-10-15"
+  },
+  {
    "label": "mimo-v2.6-flash-reap",
    "title": "MiMo-V2.6-Flash, REAP 50%",
    "detail": "half the experts kept, FP4 experts, 92 GB",
