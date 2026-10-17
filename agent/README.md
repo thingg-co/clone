@@ -1,4 +1,4 @@
-# fable
+# frank
 
 The agent, in the terminal or the browser. It talks to any OpenAI-compatible
 chat endpoint that supports tool calling (llama.cpp, vLLM, Ollama) and gives
@@ -9,16 +9,16 @@ read-only subagents.
 From a checkout:
 
     uv sync
-    uv run fable --doctor            # models, context window, speed, tool-call check
-    uv run fable                     # interactive session in the current directory
-    uv run fable -p "explain the build"            # one shot
-    git diff | uv run fable -p "review this"       # piped input
-    uv run fable -y "fix the failing test"         # auto-approve tool calls
-    uv run fable --web                             # the chat page, on the same sessions
+    uv run frank --doctor            # models, context window, speed, tool-call check
+    uv run frank                     # interactive session in the current directory
+    uv run frank -p "explain the build"            # one shot
+    git diff | uv run frank -p "review this"       # piped input
+    uv run frank -y "fix the failing test"         # auto-approve tool calls
+    uv run frank --web                             # the chat page, on the same sessions
 
 Without a checkout, on any machine that can reach the Spark, the control page
-gives a command that installs fable from the Spark itself with `uvx`. It only
-needs `FABLE_BASE_URL` and `FABLE_API_KEY`: the model defaults to the first
+gives a command that installs frank from the Spark itself with `uvx`. It only
+needs `FRANK_BASE_URL` and `FRANK_API_KEY`: the model defaults to the first
 one the server lists, and the kind of server is detected.
 
 Permissions: read-only tools always run. In `ask` mode a shell command runs
@@ -54,15 +54,15 @@ it. The system prompt is built once per session for the same reason: anything
 that changes it, including `/effort` on a model that is prompted to think,
 makes the server process the whole history again.
 
-Sessions are JSONL files under `.fable/sessions/`; `-c` resumes the latest for
+Sessions are JSONL files under `.frank/sessions/`; `-c` resumes the latest for
 the current directory and `-r ID` a specific one. `--sessions` lists them.
 
-`fable --web` serves the same sessions as a chat page in the browser, on
+`frank --web` serves the same sessions as a chat page in the browser, on
 http://127.0.0.1:8089 (`--host` and `--port` change that; `web_host` and
 `web_port` in the config too). Chats started there are sessions like any other,
 and terminal sessions show up there as chats. Each chat runs its agent in a
 process of its own, in the project folder picked for it, which reads the config
-there the way the terminal would; the flags given to `fable --web` still win.
+there the way the terminal would; the flags given to `frank --web` still win.
 Stop on the page works like Ctrl-C. Permission questions come up as Allow,
 Always and Deny, and slash commands work in the message box. A turn holds a
 lock on its session, so the terminal and the page never write to one at the
@@ -71,7 +71,7 @@ Prompts typed on the page go into the same Up-arrow history as the terminal's.
 There is no login: anyone who can open the page can have the agent run
 commands as you, which is why it stays on 127.0.0.1 unless told otherwise.
 
-Prompts live in `fable_local/prompts/`: `system.md` (the agent's standing
+Prompts live in `frank_local/prompts/`: `system.md` (the agent's standing
 orders, with `{placeholders}` for the environment), `user.md` (the
 user's standing instructions; put your own in `user.local.md`, which replaces
 it and is ignored by git), `thinking.md` (the `<think>` protocol and one section
@@ -81,7 +81,7 @@ nothing else needs to change.
 
 Instruction files are appended to the system prompt: `~/.claude/CLAUDE.md`,
 then `AGENTS.md`, `CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md` and
-`FABLE.md` in the working directory and each of its parents, outermost first.
+`FRANK.md` in the working directory and each of its parents, outermost first.
 They are read when a session starts and again after a compaction or `/clear`,
 which cost the server its cache anyway, so an edit made during a session
 holds from the next one of those. Asked to remember something for later

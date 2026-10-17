@@ -65,7 +65,7 @@ class WebFetch(Tool):
             return ToolResult("only http(s) URLs are supported", is_error=True)
         max_chars = int(args.get("max_chars") or 20000)
         try:
-            r = httpx.get(url, follow_redirects=True, timeout=30, headers={"User-Agent": "fable-local/0.1 (+local agent)"})
+            r = httpx.get(url, follow_redirects=True, timeout=30, headers={"User-Agent": "frank-local/0.1 (+local agent)"})
         except httpx.HTTPError as e:
             return ToolResult(f"fetch failed: {e}", is_error=True)
         if r.status_code >= 400:

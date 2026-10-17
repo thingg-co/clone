@@ -28,9 +28,9 @@ Through the tunnel instead of the LAN: `CLAUDE_LOCAL_HOST=localhost source claud
 When the server only has /v1/chat/completions, run LiteLLM on the Mac. It
 translates the Messages API, including tool use and streaming.
 
-    export FABLE_OPENAI_BASE=http://omega.local:8080/v1
-    export FABLE_SIDEKICK_BASE=http://omega.local:8081/v1
-    export FABLE_API_KEY=<API_KEY from config/spark.env>
+    export FRANK_OPENAI_BASE=http://omega.local:8080/v1
+    export FRANK_SIDEKICK_BASE=http://omega.local:8081/v1
+    export FRANK_API_KEY=<API_KEY from config/spark.env>
     uvx --from 'litellm[proxy]' litellm --config claude-code/litellm.yaml --port 4000
 
     CLAUDE_LOCAL_HOST=localhost CLAUDE_LOCAL_PORT=4000 CLAUDE_LOCAL_TOKEN=sk-local \

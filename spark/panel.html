@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>clone</title>
+<title>frank</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%BD%3C/text%3E%3C/svg%3E">
 <style>
 :root {
@@ -68,7 +68,7 @@ pre.log { max-height: 320px; overflow-y: auto; white-space: pre-wrap; overflow-w
 <body>
 <main>
   <header>
-    <h1>👽 clone</h1>
+    <h1>👽 frank</h1>
     <span class="sub" id="host"></span>
     <a class="sub" id="chatlink" href="#">Chat</a>
     <span class="sub" id="live" style="margin-left:auto"></span>
@@ -138,16 +138,16 @@ pre.log { max-height: 320px; overflow-y: auto; white-space: pre-wrap; overflow-w
       <pre id="claude"></pre>
     </div>
     <div class="cmd">
-      <div class="head"><b>fable</b><button data-copy="fable">Copy</button></div>
-      <pre id="fable"></pre>
+      <div class="head"><b>frank</b><button data-copy="frank">Copy</button></div>
+      <pre id="frank"></pre>
     </div>
     <div class="row">
       <button data-act="messages">Test the Claude endpoint</button>
       <button data-act="smoke">Test tool calling</button>
     </div>
     <p class="note" id="connect-note"></p>
-    <p class="note">On the Spark itself there is a shorter way: <code>ssh omega.local</code>, <code>cd</code> into a project and run <code>clone</code> (or run it in your home folder to pick from ~/Development, or paste a git URL there to clone a new one). It runs inside tmux, so the agent keeps working if the connection drops; <code>clone</code> in the same folder picks it up again. <code>make clone-command</code> sets up the same command on a Mac, against this server.</p>
-    <p class="note">Both commands run on any machine that can reach the Spark by the name chosen above. fable needs <code>uv</code> there and installs itself from this page; add <code>--doctor</code> to check the connection first. Claude Code needs the server to answer on /v1/messages; the first test checks that. The commands contain the API key.</p>
+    <p class="note">On the Spark itself there is a shorter way: <code>ssh omega.local</code>, <code>cd</code> into a project and run <code>frank</code> (or run it in your home folder to pick from ~/Development, or paste a git URL there to clone a new one). It runs inside tmux, so the agent keeps working if the connection drops; <code>frank</code> in the same folder picks it up again. <code>make frank-command</code> sets up the same command on a Mac, against this server.</p>
+    <p class="note">Both commands run on any machine that can reach the Spark by the name chosen above. frank needs <code>uv</code> there and installs itself from this page; add <code>--doctor</code> to check the connection first. Claude Code needs the server to answer on /v1/messages; the first test checks that. The commands contain the API key.</p>
   </section>
 
   <section>
@@ -159,7 +159,7 @@ pre.log { max-height: 320px; overflow-y: auto; white-space: pre-wrap; overflow-w
     <pre class="log" id="joblog">(nothing has run yet)</pre>
     <div class="row">
       <label for="unit">Service log</label>
-      <select id="unit"><option>vllm</option><option>llama-server</option><option>llama-sidekick</option><option>clone-panel</option><option>clone-chat</option></select>
+      <select id="unit"><option>vllm</option><option>llama-server</option><option>llama-sidekick</option><option>frank-panel</option><option>frank-chat</option></select>
       <button id="showlog">Show</button>
     </div>
     <pre class="log" id="unitlog" hidden></pre>
@@ -175,10 +175,10 @@ const $ = id => document.getElementById(id);
 const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids); return n; };
 const tokens = n => !n ? "?" : n >= 1e6 ? (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M" : Math.round(n / 1000) + "k";
 let S = null, picked = null, pickedByUser = false;
-$("chatlink").href = `${location.protocol}//${location.hostname}:8089/`;  // fable's chat page, the clone-chat unit
+$("chatlink").href = `${location.protocol}//${location.hostname}:8089/`;  // frank's chat page, the frank-chat unit
 
 async function api(path, body) {
-  const r = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json", "X-Clone-Panel": "1" }, body: JSON.stringify(body) } : {});
+  const r = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json", "X-Frank-Panel": "1" }, body: JSON.stringify(body) } : {});
   const data = await r.json().catch(() => ({ error: "HTTP " + r.status }));
   if (!r.ok) throw new Error(data.error || "HTTP " + r.status);
   return data;
@@ -276,7 +276,7 @@ function renderProfiles() {
     const ctx = p.ctx_fit ? "largest that fits" : p.long_ctx ? tokens(p.ctx) + " to " + tokens(p.long_ctx) : tokens(p.ctx);
     const tr = el("tr", { className: p === cur ? "current" : "" },
       el("td", {}, radio), el("td", { className: "name", textContent: p.key }), el("td", { textContent: p.backend === "vllm" ? "vLLM" : "llama.cpp" }),
-      el("td", { textContent: ctx }), el("td", { textContent: p.thinking === "native" ? "native" : "prompted by fable" }),
+      el("td", { textContent: ctx }), el("td", { textContent: p.thinking === "native" ? "native" : "prompted by frank" }),
       el("td", { textContent: p.tools }), el("td", {}, p.downloading ? pill("downloading", "warn") : p.downloaded ? pill("on disk", "ok") : pill("not pulled", "muted")));
     tr.onclick = e => { if (e.target !== radio) radio.click(); };
     return tr;
@@ -308,7 +308,7 @@ function renderContext(reset) {
   else if (!p.downloaded) notes.push("Not on disk yet: pull the weights first.");
   if (p.ctx_fit) notes.push("llama.cpp starts from the model's trained window and shrinks it until it fits beside the weights.");
   else if (chosen < 500000) notes.push("This is under the 500k floor.");
-  if (p.thinking !== "native") notes.push("No reasoning mode of its own: fable asks it to think in a <think> block; Claude Code gets no thinking from it.");
+  if (p.thinking !== "native") notes.push("No reasoning mode of its own: frank asks it to think in a <think> block; Claude Code gets no thinking from it.");
   if (p.min_free_gb) notes.push("Needs " + p.min_free_gb + " GB free to start.");
   $("profile-note").textContent = notes.join(" ");
 }
@@ -344,11 +344,11 @@ function renderConnect() {
   ];
   const put = (id, text) => { if ($(id).textContent !== text) $(id).textContent = text; };  // leave a selection alone
   put("claude", vars.map(([k, v]) => k + "=" + v + " \\").join("\n") + "\nclaude");
-  // fable installs itself from this page, so the command works on any machine that can reach the Spark
+  // frank installs itself from this page, so the command works on any machine that can reach the Spark
   const panel = "http://" + host + (location.port ? ":" + location.port : "");
-  const fableCmd = "FABLE_BASE_URL=" + base + "/v1 \\\nFABLE_API_KEY=" + c.api_key + " \\\n" +
-    (S.fable && S.fable.archive ? 'uvx --from "fable-local @ ' + panel + S.fable.archive + '" fable' : "uv run --project agent fable");
-  put("fable", fableCmd);
+  const frankCmd = "FRANK_BASE_URL=" + base + "/v1 \\\nFRANK_API_KEY=" + c.api_key + " \\\n" +
+    (S.frank && S.frank.archive ? 'uvx --from "frank-local @ ' + panel + S.frank.archive + '" frank' : "uv run --project agent frank");
+  put("frank", frankCmd);
   for (const b of document.querySelectorAll('[data-act="messages"], [data-act="smoke"]')) { b.dataset.target = which.value; b.dataset.needs = which.value; }
 }
 

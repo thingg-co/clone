@@ -5,9 +5,9 @@ from types import SimpleNamespace
 import pytest
 from rich.console import Console
 
-from fable_local.config import Settings
-from fable_local.render import UI
-from fable_local.tools.base import ToolContext
+from frank_local.config import Settings
+from frank_local.render import UI
+from frank_local.tools.base import ToolContext
 
 
 class FakeAgent:

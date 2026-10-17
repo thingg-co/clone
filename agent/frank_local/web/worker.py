@@ -5,7 +5,7 @@ events leave as JSON lines on the original stdout. The server stops a turn by se
 SIGINT to the process group, which does what Ctrl-C does in the terminal: the request
 or the shell command in progress is cut off and the history repaired.
 
-    python -m fable_local.web.worker '{"session": "...jsonl", "cwd": "...", "overrides": {...}}'
+    python -m frank_local.web.worker '{"session": "...jsonl", "cwd": "...", "overrides": {...}}'
 """
 
 from __future__ import annotations

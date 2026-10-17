@@ -4,10 +4,10 @@ import time
 
 import pytest
 
-from fable_local.client import Turn
-from fable_local.config import Settings
-from fable_local.loop import Agent
-from fable_local.session import Session, SessionBusy, load_titles, save_title
+from frank_local.client import Turn
+from frank_local.config import Settings
+from frank_local.loop import Agent
+from frank_local.session import Session, SessionBusy, load_titles, save_title
 
 from test_loop import FakeClient
 

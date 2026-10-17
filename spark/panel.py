@@ -5,7 +5,7 @@
 
 Shows what is running, switches profile and context length, starts and stops
 the services, pulls weights, runs the checks, and prints the command that
-points Claude Code or fable at this box.
+points Claude Code or frank at this box.
 
 Access: PANEL_HOST in config/spark.env decides where it listens. The shipped
 config uses 0.0.0.0, so it is on the LAN; without the setting it stays on
@@ -37,7 +37,7 @@ from urllib.parse import parse_qs, urlparse
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = Path(__file__).with_name("panel.html")
 KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
-LOG_UNITS = ("vllm", "llama-server", "llama-sidekick", "clone-panel", "clone-chat")
+LOG_UNITS = ("vllm", "llama-server", "llama-sidekick", "frank-panel", "frank-chat")
 
 
 def read_env(path: Path) -> dict:
@@ -95,17 +95,17 @@ def hf_complete(repo_dir: Path) -> bool:
     return False
 
 
-# ---- fable, handed out as an installable archive ------------------------------
+# ---- frank, handed out as an installable archive ------------------------------
 AGENT_DIR = ROOT / "agent"
 _archive: dict = {"sig": None, "path": "", "data": b"", "version": ""}
 
 
-def fable_archive() -> dict:
+def frank_archive() -> dict:
     """The agent as a source archive pip and uv can install from a URL. Rebuilt when a file changes.
 
     The path carries a hash of the content, so a client's cache is good until the code changes.
     """
-    files = [AGENT_DIR / "pyproject.toml", AGENT_DIR / "README.md", *sorted((AGENT_DIR / "fable_local").rglob("*"))]
+    files = [AGENT_DIR / "pyproject.toml", AGENT_DIR / "README.md", *sorted((AGENT_DIR / "frank_local").rglob("*"))]
     files = [f for f in files if f.is_file() and "__pycache__" not in f.parts and f.suffix != ".pyc"]
     if not files or not files[0].is_file():
         return {"path": "", "data": b"", "version": ""}
@@ -117,12 +117,12 @@ def fable_archive() -> dict:
         with tarfile.open(fileobj=raw, mode="w") as tar:
             for f in files:
                 data = f.read_bytes()
-                info = tarfile.TarInfo(f"fable_local-{version}/{f.relative_to(AGENT_DIR)}")
+                info = tarfile.TarInfo(f"frank_local-{version}/{f.relative_to(AGENT_DIR)}")
                 info.size, info.mode, info.mtime = len(data), 0o644, 0
                 tar.addfile(info, io.BytesIO(data))
         data = gzip.compress(raw.getvalue(), mtime=0)
         _archive.update(sig=sig, data=data, version=version,
-                        path=f"/dist/{hashlib.sha256(data).hexdigest()[:10]}/fable_local-{version}.tar.gz")
+                        path=f"/dist/{hashlib.sha256(data).hexdigest()[:10]}/frank_local-{version}.tar.gz")
     return _archive
 
 
@@ -641,7 +641,7 @@ def state() -> dict:
         "host": os.uname().nodename,
         "downloads": downloads(profs, env),
         "hosts": hosts(),
-        "fable": {"archive": fable_archive()["path"], "version": fable_archive()["version"]},
+        "frank": {"archive": frank_archive()["path"], "version": frank_archive()["version"]},
         "config": {
             "backend": env["BACKEND"], "vllm_profile": env["VLLM_PROFILE"], "vllm_long": to_int(env["VLLM_LONG"], 0),
             "model": env["MODEL"], "port": to_int(env["PORT"]), "sidekick_model": env.get("SIDEKICK_MODEL", ""),
@@ -670,7 +670,7 @@ def snapshot() -> dict:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "clone-panel"
+    server_version = "frank-panel"
 
     def log_message(self, fmt, *args):  # actions are logged by the job runner; requests are noise
         pass
@@ -707,7 +707,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send(200, results())
         elif url.path.startswith("/dist/") and url.path.endswith(".tar.gz"):
             # whatever hash was asked for, the current build is what there is to give
-            archive = fable_archive()
+            archive = frank_archive()
             if not archive["data"]:
                 return self.send(404, {"error": "no agent/ directory in this tree"})
             self.send(200, archive["data"], "application/gzip", {"Cache-Control": "public, max-age=31536000, immutable"})
@@ -736,8 +736,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed():
             return
         # A page on another site cannot set this header, so it cannot press the buttons.
-        if self.headers.get("X-Clone-Panel") != "1":
-            return self.send(403, {"error": "missing X-Clone-Panel header"})
+        if self.headers.get("X-Frank-Panel") != "1":
+            return self.send(403, {"error": "missing X-Frank-Panel header"})
         try:
             body = json.loads(self.rfile.read(min(to_int(self.headers.get("Content-Length"), 0), 65536)) or b"{}")
             if not isinstance(body, dict):
@@ -762,7 +762,7 @@ def main() -> None:
     host, port = env.get("PANEL_HOST", "127.0.0.1"), to_int(env.get("PANEL_PORT"), 8088)
     httpd = ThreadingHTTPServer((host, port), Handler)
     httpd.daemon_threads = True
-    print(f"clone panel on http://{host}:{port} (root {ROOT})", flush=True)
+    print(f"frank panel on http://{host}:{port} (root {ROOT})", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

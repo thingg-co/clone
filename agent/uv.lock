@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11"
 
 [[package]]
@@ -52,8 +52,8 @@ wheels = [
 ]
 
 [[package]]
-name = "fable-local"
-version = "0.2.33"
+name = "frank-local"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

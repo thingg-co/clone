@@ -8,12 +8,16 @@ config/spark.env
 /logs/
 # python
 agent/.venv/
-agent/.fable/
+agent/.frank/
+# agent/.fable/ stays ignored too: old session data, before the rename
+agent/.fable
 __pycache__/
 *.pyc
 .pytest_cache/
 *.egg-info/
-# personal prompt files; fable reads <name>.local.md in place of <name>.md
-agent/fable_local/prompts/*.local.md
+# personal prompt files; frank reads <name>.local.md in place of <name>.md
+agent/frank_local/prompts/*.local.md
 # third-party recipes cloned at a pinned commit on the Spark
 /third_party/
+
+.DS_Store

@@ -3,10 +3,10 @@ import json
 from conftest import delta, tc
 from test_loop import FakeClient, make_agent
 
-from fable_local import thinking
-from fable_local.client import Client, StreamAccumulator, ToolCall, Turn
-from fable_local.config import Settings
-from fable_local.prompt import build_system_prompt
+from frank_local import thinking
+from frank_local.client import Client, StreamAccumulator, ToolCall, Turn
+from frank_local.config import Settings
+from frank_local.prompt import build_system_prompt
 
 
 def feed_all(chunks):
@@ -147,7 +147,7 @@ def test_max_tokens_is_clamped_to_the_room_left(tmp_path, ui):
 
 def test_tool_output_limit_scales_with_the_window(tmp_path, ui):
     s = Settings(permission_mode="auto")
-    from fable_local.loop import Agent
+    from frank_local.loop import Agent
     assert Agent(s, FakeClient([]), ui, tmp_path, context_window=32_768).tool_output_limit == 30_000
     assert Agent(s, FakeClient([]), ui, tmp_path, context_window=1_010_000).tool_output_limit == 353_500
     assert Agent(Settings(max_tool_output_chars=5000), FakeClient([]), ui, tmp_path, context_window=1_010_000).tool_output_limit == 5000

@@ -12,11 +12,11 @@ from http.server import ThreadingHTTPServer
 
 import pytest
 
-from fable_local.client import Turn
-from fable_local.config import Settings
-from fable_local.loop import Agent
-from fable_local.session import Session
-from fable_local.web.server import make_server
+from frank_local.client import Turn
+from frank_local.config import Settings
+from frank_local.loop import Agent
+from frank_local.session import Session
+from frank_local.web.server import make_server
 
 from test_e2e_mock_server import Handler
 from test_loop import FakeClient
@@ -68,7 +68,7 @@ def web(model, tmp_path):
 
 def call(w, method, path, body=None, headers=None):
     conn = http.client.HTTPConnection("127.0.0.1", w["port"], timeout=20)
-    h = {"X-Fable": "1", "Content-Type": "application/json", **(headers or {})}
+    h = {"X-Frank": "1", "Content-Type": "application/json", **(headers or {})}
     conn.request(method, path, body=None if body is None else json.dumps(body), headers=h)
     r = conn.getresponse()
     data = r.read()
@@ -158,7 +158,7 @@ def test_the_terminal_and_the_page_share_a_session(web, ui):
     sid = new_chat(web, "from the page")
     events_until_done(web, sid)
 
-    # The terminal resumes it (clone -r ID) and adds a turn.
+    # The terminal resumes it (frank -r ID) and adds a turn.
     session = Session.find(web["home"], sid)
     terminal = Agent(Settings(permission_mode="auto"), FakeClient([Turn(text="Terminal answer.")]), ui, web["project"], context_window=100_000)
     terminal.load_history(session.messages())
@@ -202,7 +202,7 @@ def test_rename_delete_and_commands(web):
 
 
 def test_other_sites_are_turned_away(web):
-    assert call(web, "POST", "/api/chats", {"cwd": "/", "text": "x"}, headers={"X-Fable": ""})[0] == 403
+    assert call(web, "POST", "/api/chats", {"cwd": "/", "text": "x"}, headers={"X-Frank": ""})[0] == 403
     assert call(web, "GET", "/api/chats", headers={"Host": "evil.example:8089"})[0] == 403
     conn = http.client.HTTPConnection("127.0.0.1", web["port"], timeout=5)
     conn.request("GET", "/")
@@ -214,7 +214,7 @@ def test_other_sites_are_turned_away(web):
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
 def test_markdown_escapes_and_renders():
-    js = Path(__file__).resolve().parent.parent / "fable_local" / "web" / "markdown.js"
+    js = Path(__file__).resolve().parent.parent / "frank_local" / "web" / "markdown.js"
     script = """
     const M = require(process.argv[1]);
     const cases = process.argv.slice(2).map((s) => M.render(s));

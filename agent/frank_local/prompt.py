@@ -13,7 +13,7 @@ from .config import Settings
 
 # Per directory, in this order: the shared files, Claude Code's other place for its file, then
 # the personal one that stays out of git.
-INSTRUCTION_FILES = ("AGENTS.md", "CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md", "FABLE.md")
+INSTRUCTION_FILES = ("AGENTS.md", "CLAUDE.md", ".claude/CLAUDE.md", "CLAUDE.local.md", "FRANK.md")
 MAX_INSTRUCTION_CHARS = 20_000
 
 
@@ -40,7 +40,7 @@ def instruction_files(cwd: Path) -> list[Path]:
     """User-level and project-level instruction files, outermost first."""
     found: list[Path] = []
     home = Path.home()
-    for p in (home / ".claude" / "CLAUDE.md", home / ".config" / "fable" / "CLAUDE.md", home / ".config" / "fable" / "AGENTS.md"):
+    for p in (home / ".claude" / "CLAUDE.md", home / ".config" / "frank" / "CLAUDE.md", home / ".config" / "frank" / "AGENTS.md"):
         if p.is_file():
             found.append(p)
     chain = [cwd, *cwd.parents]

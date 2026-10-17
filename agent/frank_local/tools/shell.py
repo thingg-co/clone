@@ -7,7 +7,7 @@ from typing import Any
 
 from .base import Tool, ToolContext, ToolResult, truncate_middle
 
-CWD_MARK = "\x1e__FABLE_CWD__="
+CWD_MARK = "\x1e__FRANK_CWD__="
 
 
 def _stop(proc: subprocess.Popen) -> bytes:
@@ -67,7 +67,7 @@ class Bash(Tool):
         timeout = max(1, min(timeout, 600))
         # Run the command, then report the final working directory so `cd` persists.
         script = f"{command}\n__rc=$?\nprintf '\\n{CWD_MARK}%s' \"$PWD\"\nexit $__rc"
-        env = dict(os.environ, FABLE_AGENT="1", GIT_TERMINAL_PROMPT="0")
+        env = dict(os.environ, FRANK_AGENT="1", GIT_TERMINAL_PROMPT="0")
         # A session of its own, so that an interrupt or a timeout can end all of it (_stop).
         # It also has no terminal, so a password prompt fails at once instead of waiting.
         proc = subprocess.Popen(

@@ -4,9 +4,9 @@ import time
 
 import pytest
 
-from fable_local.tools.base import truncate_middle
-from fable_local.tools.fs import EditFile, GlobFiles, GrepFiles, ListDir, ReadFile, WriteFile
-from fable_local.tools.shell import Bash
+from frank_local.tools.base import truncate_middle
+from frank_local.tools.fs import EditFile, GlobFiles, GrepFiles, ListDir, ReadFile, WriteFile
+from frank_local.tools.shell import Bash
 
 
 def test_write_read_edit(ctx, tmp_path):

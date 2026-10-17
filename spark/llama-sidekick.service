@@ -1,7 +1,7 @@
 # systemd user unit for the optional small fast model.
 # Like the main unit: never enabled, never restarted automatically.
 [Unit]
-Description=llama-server sidekick (clone)
+Description=llama-server sidekick (frank)
 After=network-online.target llama-server.service
 
 [Service]

@@ -1,6 +1,6 @@
 from conftest import delta, tc
 
-from fable_local.client import StreamAccumulator
+from frank_local.client import StreamAccumulator
 
 
 def test_text_and_reasoning():

@@ -2,7 +2,7 @@
 # to the Spark's OpenAI-style endpoint. Only needed when the server itself has
 # no /v1/messages (older llama.cpp builds).
 #
-#   export FABLE_OPENAI_BASE=http://omega.local:8080/v1 FABLE_API_KEY=<API_KEY from config/spark.env>
+#   export FRANK_OPENAI_BASE=http://omega.local:8080/v1 FRANK_API_KEY=<API_KEY from config/spark.env>
 #   uvx --from 'litellm[proxy]' litellm --config claude-code/litellm.yaml --port 4000
 #   CLAUDE_LOCAL_HOST=localhost CLAUDE_LOCAL_PORT=4000 CLAUDE_LOCAL_TOKEN=sk-local source claude-code/env.sh local
 #   claude
@@ -10,14 +10,14 @@ model_list:
   - model_name: local
     litellm_params:
       model: openai/qwen3.8-27b      # the served model name on the Spark
-      api_base: os.environ/FABLE_OPENAI_BASE
-      api_key: os.environ/FABLE_API_KEY
+      api_base: os.environ/FRANK_OPENAI_BASE
+      api_key: os.environ/FRANK_API_KEY
       timeout: 600
   - model_name: sidekick
     litellm_params:
       model: openai/gpt-oss-20b
-      api_base: os.environ/FABLE_SIDEKICK_BASE
-      api_key: os.environ/FABLE_API_KEY
+      api_base: os.environ/FRANK_SIDEKICK_BASE
+      api_key: os.environ/FRANK_API_KEY
       timeout: 600
 
 litellm_settings:

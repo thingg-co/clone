@@ -1,4 +1,4 @@
-// The chat page for fable --web (server.py). The session files are the record: the page draws
+// The chat page for frank --web (server.py). The session files are the record: the page draws
 // them, and while a turn runs it draws the worker's events on top (streamed text and thinking,
 // tool calls starting, permission questions), each record replacing its live version.
 "use strict";
@@ -14,8 +14,8 @@ const S = {
   state: null, chats: [], id: null, view: null, es: null, running: false, boot: null,
   prompts: [], recall: -1, draft: "", holder: null, size: null, adopt: false, started: 0, lastSent: "",
 };
-const prefs = (() => { try { return JSON.parse(localStorage.getItem("fable.prefs") || "{}") || {}; } catch (e) { return {}; } })();
-function savePrefs() { try { localStorage.setItem("fable.prefs", JSON.stringify(prefs)); } catch (e) { /* private window */ } }
+const prefs = (() => { try { return JSON.parse(localStorage.getItem("frank.prefs") || "{}") || {}; } catch (e) { return {}; } })();
+function savePrefs() { try { localStorage.setItem("frank.prefs", JSON.stringify(prefs)); } catch (e) { /* private window */ } }
 
 // ---- small helpers --------------------------------------------------------------
 function el(tag, attrs, ...kids) {
@@ -33,7 +33,7 @@ function el(tag, attrs, ...kids) {
 
 async function api(path, body) {
   const init = body === undefined ? {} : {
-    method: "POST", headers: { "Content-Type": "application/json", "X-Fable": "1" }, body: JSON.stringify(body),
+    method: "POST", headers: { "Content-Type": "application/json", "X-Frank": "1" }, body: JSON.stringify(body),
   };
   const r = await fetch(path, init);
   const data = await r.json().catch(() => ({}));
@@ -487,7 +487,7 @@ function header() {
   $("title").textContent = S.id ? (c ? c.title : "…") : "New chat";
   $("title").disabled = !c;
   $("where").textContent = c ? tilde(c.cwd) : "";
-  document.title = (c ? c.title + " · " : "") + "fable";
+  document.title = (c ? c.title + " · " : "") + "frank";
 }
 
 // ---- new chats and sending -------------------------------------------------------------
@@ -593,7 +593,7 @@ async function loadState() {
     m.className = "";
     m.title = (st.server || "server") + " at " + st.base_url;
   }
-  $("version").textContent = "fable " + st.version;
+  $("version").textContent = "frank " + st.version;
 }
 
 function setup() {

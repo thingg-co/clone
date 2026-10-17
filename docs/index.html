@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>clone: a coding agent on one DGX Spark</title>
+<title>frank: a coding agent on one DGX Spark</title>
 <meta name="description" content="A local coding agent on a DGX Spark: a model server with as much context as the box can hold, a terminal agent with tool calling, and a ranked comparison of which open models can still find things in half a million tokens.">
-<meta property="og:title" content="clone: a coding agent on one DGX Spark">
+<meta property="og:title" content="frank: a coding agent on one DGX Spark">
 <meta property="og:description" content="A model server, a terminal agent, and measurements of which open models can still find things in half a million tokens.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="panel.png">
-<meta name="repo" content="https://github.com/thingg-co/clone">
+<meta name="repo" content="https://github.com/thingg-co/frank">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%BD%3C/text%3E%3C/svg%3E">
 <style>
 :root {
@@ -81,8 +81,8 @@ footer p { margin: 0 0 8px; }
 <main>
   <header>
     <div class="mark" aria-hidden="true">👽</div>
-    <h1>clone</h1>
-    <p class="lead">A coding agent that runs on one DGX Spark: a model server with as much context as the box can hold, and <code>fable</code>, a terminal agent with tool calling that works the way Claude Code does.</p>
+    <h1>frank</h1>
+    <p class="lead">A coding agent that runs on one DGX Spark: a model server with as much context as the box can hold, and <code>frank</code>, a terminal agent with tool calling that works the way Claude Code does.</p>
     <p>It aims at three things at once. A context window of 500k tokens or more, thinking before the model acts, and tool calls that work. Everything lives in one directory on both machines.</p>
     <p>It is not a frontier model. The open models that fit in 122 GiB are slower and less sharp than a hosted one, so most of the work here went into finding out which of them can be trusted with a long prompt.</p>
     <div class="links">
@@ -100,12 +100,12 @@ footer p { margin: 0 0 8px; }
         <p>vLLM in NVIDIA's container, or llama.cpp for models whose release weights are larger than the machine, with one profile per model: weights, window, parsers and memory share. When the window asked for does not fit, the launcher takes the largest one that does and says so. Every model runs at its deepest reasoning setting unless a request asks for less.</p>
       </div>
       <div>
-        <h3>fable</h3>
+        <h3>frank</h3>
         <p>An agent in Python, in the terminal or in the browser. Shell, file read, write and edit, search, web fetch, a task list and read-only subagents, behind a permission check. Five thinking levels, max by default, translated into whatever each model family calls them. The chat page on the Spark looks like ChatGPT or Claude on the web and works on the same sessions as the terminal, so a conversation can move from one to the other.</p>
       </div>
       <div>
         <h3>A control page</h3>
-        <p>Served from the Spark with the standard library. What is running, memory, downloads with a finish time, switching model and window, the results so far, and the commands that connect Claude Code or fable from another machine.</p>
+        <p>Served from the Spark with the standard library. What is running, memory, downloads with a finish time, switching model and window, the results so far, and the commands that connect Claude Code or frank from another machine.</p>
       </div>
     </div>
     <figure>
@@ -118,7 +118,7 @@ footer p { margin: 0 0 8px; }
     <h2>What was measured</h2>
     <p>A long window is only worth having if the model can still find things in it. The acceptance test fills the prompt with numbered records, thousands of lines like this one:</p>
     <pre>Record 9337: the access code for locker 9337 is 836244.</pre>
-    <p>It then asks for three of the codes, one near the start, one in the middle and one near the end, and wants them back through a tool call. A size passes when the call is made and all three codes are right. It is a harsh test. It is also what a long window is for. Each answer gets 32,768 tokens for its thinking and the call, which is what fable allows. Until 14 October it was 4,000, and the models measured before then are being measured again.</p>
+    <p>It then asks for three of the codes, one near the start, one in the middle and one near the end, and wants them back through a tool call. A size passes when the call is made and all three codes are right. It is a harsh test. It is also what a long window is for. Each answer gets 32,768 tokens for its thinking and the call, which is what frank allows. Until 14 October it was 4,000, and the models measured before then are being measured again.</p>
     <p>Results from the same Spark, all with thinking on, ranked by how far each model stays exact: the largest prompt it answered with all three codes right, with every smaller prompt right as well. Ties go to the largest prompt with at most one code wrong at each size, then to the share of codes right, then to decode speed. Sizes count to the nearest 50k, since the same step comes out a few thousand tokens apart from one tokenizer to the next. Read-in is how fast the first recall prompt was read.</p>
     <div class="tablewrap">
       <table>
@@ -337,16 +337,16 @@ spark/bootstrap.sh   <span class="c"># tools, container image, weights, services
 
 <span class="c"># back on your own machine</span>
 make panel           <span class="c"># the control page</span>
-make chat            <span class="c"># fable in the browser, same sessions as the terminal</span>
+make chat            <span class="c"># frank in the browser, same sessions as the terminal</span>
 make doctor          <span class="c"># context window, speed, thinking and tool calls</span>
-make agent           <span class="c"># fable in the current directory</span></pre>
-    <p>The control page prints one command for Claude Code and one for fable, each ready to paste on any machine that can reach the Spark. Before trusting a model with a long prompt, run the recall test against it:</p>
+make agent           <span class="c"># frank in the current directory</span></pre>
+    <p>The control page prints one command for Claude Code and one for frank, each ready to paste on any machine that can reach the Spark. Before trusting a model with a long prompt, run the recall test against it:</p>
 <pre>python3 scripts/context-test.py --base-url http://127.0.0.1:8080/v1 --api-key KEY --sizes 100,250,500</pre>
   </section>
 
   <footer>
     <p>Released under the <a href="https://polyformproject.org/licenses/noncommercial/1.0.0">PolyForm Noncommercial License 1.0.0</a>. Copyright 2026 thingg.co.</p>
-    <p>clone is an independent project. It is not affiliated with Anthropic, NVIDIA, Alibaba, Poolside or anyone else whose models and tools it mentions, and those names belong to their owners. The models, vLLM and llama.cpp are separate works under their own licenses.</p>
+    <p>frank is an independent project. It is not affiliated with Anthropic, NVIDIA, Alibaba, Poolside or anyone else whose models and tools it mentions, and those names belong to their owners. The models, vLLM and llama.cpp are separate works under their own licenses.</p>
   </footer>
 </main>
 <script>

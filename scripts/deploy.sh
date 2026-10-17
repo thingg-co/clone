@@ -7,7 +7,7 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 [ -f "$ROOT/config/spark.env" ] || { echo "copy config/spark.env.example to config/spark.env first" >&2; exit 1; }
 set -a; . "$ROOT/config/spark.env"; set +a
 target="${SPARK_USER}@${SPARK_HOST}"
-remote="${REMOTE_DIR:-Development/clone}"
+remote="${REMOTE_DIR:-Development/frank}"
 run_bootstrap=0; flags=()
 for a in "$@"; do case "$a" in --bootstrap) run_bootstrap=1 ;; *) flags+=("$a") ;; esac; done
 
@@ -15,7 +15,7 @@ echo "syncing to $target:~/$remote/"
 ssh "$target" "mkdir -p ~/$remote"
 rsync -az --delete \
     --exclude /.git --exclude /models/ --exclude /llama.cpp/ --exclude /.tools/ --exclude /run/ --exclude /logs/ --exclude /third_party/ \
-    --exclude /agent/.venv/ --exclude /agent/.fable/ --exclude __pycache__/ --exclude .pytest_cache/ \
+    --exclude /agent/.venv/ --exclude /agent/.frank/ --exclude __pycache__/ --exclude .pytest_cache/ \
     --exclude /config/spark.env \
     "$ROOT/" "$target:~/$remote/"
 # spark.env is per-machine state: the control page and vllm.sh switch rewrite the

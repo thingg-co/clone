@@ -1,4 +1,4 @@
-from fable_local.permissions import is_safe_command
+from frank_local.permissions import is_safe_command
 
 
 def test_safe_commands():

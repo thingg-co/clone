@@ -1,11 +1,11 @@
-"""fable --web: the chat page, on the same sessions, settings and prompt history as the terminal.
+"""frank --web: the chat page, on the same sessions, settings and prompt history as the terminal.
 
 This process serves the page, reads the session files for it, and relays between the
 browser and one worker process per chat in use (worker.py), which runs the agent.
 
 There is no login. Anyone who can reach the port can have the agent run commands as
 this user, so it listens on 127.0.0.1 unless --host or web_host says otherwise. The Host
-check and the X-Fable header only stop other web sites from using the page through the
+check and the X-Frank header only stop other web sites from using the page through the
 browser of someone who has it open.
 """
 
@@ -81,7 +81,7 @@ class Chat:
         spec = {"session": str(self.session.path), "cwd": cwd, "overrides": overrides}
         # Its own process group, so Stop reaches the shell commands it runs, as Ctrl-C does.
         self.proc = subprocess.Popen(
-            [sys.executable, "-m", "fable_local.web.worker", json.dumps(spec)],
+            [sys.executable, "-m", "frank_local.web.worker", json.dumps(spec)],
             cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, start_new_session=True,
         )
         threading.Thread(target=self._pump, args=(self.proc,), daemon=True).start()
@@ -344,7 +344,7 @@ class Hub:
 class Handler(BaseHTTPRequestHandler):
     hub: Hub
     protocol_version = "HTTP/1.1"
-    server_version = "fable"
+    server_version = "frank"
 
     def log_message(self, fmt: str, *args: Any) -> None:
         pass
@@ -439,8 +439,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed():
             return
         # Another site cannot set this header on a request to here, so it cannot press the buttons.
-        if self.headers.get("X-Fable") != "1":
-            return self.send(403, {"error": "missing X-Fable header"})
+        if self.headers.get("X-Frank") != "1":
+            return self.send(403, {"error": "missing X-Frank header"})
         hub = self.hub
         path = urlparse(self.path).path
         try:
@@ -490,7 +490,7 @@ def serve(settings: Settings, overrides: dict[str, Any] | None = None) -> int:
     httpd, hub = make_server(settings, overrides)
     host = settings.web_host or "127.0.0.1"
     shown = os.uname().nodename if host in ("0.0.0.0", "::") else host
-    print(f"fable {__version__}: chat page on http://{shown}:{httpd.server_port}, sessions in {settings.home / 'sessions'}", flush=True)
+    print(f"frank {__version__}: chat page on http://{shown}:{httpd.server_port}, sessions in {settings.home / 'sessions'}", flush=True)
     if host not in ("127.0.0.1", "localhost", "::1"):
         print("no login: anyone who can reach this port can run commands here through the agent", flush=True)
     threading.Thread(target=hub.reap, daemon=True).start()

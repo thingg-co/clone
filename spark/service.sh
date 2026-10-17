@@ -20,19 +20,19 @@ has_sidekick() { [ -n "${SIDEKICK_MODEL:-}" ]; }
 case "$cmd" in
     install)
         mkdir -p "$HOME/.config/systemd/user"
-        for u in llama-server llama-sidekick clone-panel clone-chat; do
+        for u in llama-server llama-sidekick frank-panel frank-chat; do
             sed "s#@ROOT@#$ROOT#g" "$ROOT/spark/$u.service" > "$HOME/.config/systemd/user/$u.service"
         done
         systemctl --user daemon-reload
         # Model servers never start at boot (see llama-server.service); the two pages do.
         systemctl --user disable llama-server.service llama-sidekick.service >/dev/null 2>&1 || true
-        systemctl --user enable clone-panel.service clone-chat.service >/dev/null
+        systemctl --user enable frank-panel.service frank-chat.service >/dev/null
         loginctl enable-linger "$USER" 2>/dev/null || warn "could not enable linger (try: sudo loginctl enable-linger $USER); services stop at logout without it"
         log "installed; start with: spark/service.sh start"
         ;;
     uninstall)
-        systemctl --user disable --now llama-server.service llama-sidekick.service clone-panel.service clone-chat.service 2>/dev/null || true
-        for u in llama-server llama-sidekick clone-panel clone-chat; do rm -f "$HOME/.config/systemd/user/$u.service"; done
+        systemctl --user disable --now llama-server.service llama-sidekick.service frank-panel.service frank-chat.service 2>/dev/null || true
+        for u in llama-server llama-sidekick frank-panel frank-chat; do rm -f "$HOME/.config/systemd/user/$u.service"; done
         systemctl --user daemon-reload
         ;;
     start|stop|restart)

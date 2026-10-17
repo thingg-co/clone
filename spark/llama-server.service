@@ -5,7 +5,7 @@
 # shared memory a server that died usually died of memory, and every automatic start after
 # one, at boot or after a crash, stalled the whole machine.
 [Unit]
-Description=llama-server main (clone)
+Description=llama-server main (frank)
 After=network-online.target
 
 [Service]

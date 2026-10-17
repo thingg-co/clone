@@ -37,7 +37,7 @@ COMMANDS = """\
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="fable", description="Terminal coding agent for a locally served model.")
+    p = argparse.ArgumentParser(prog="frank", description="Terminal coding agent for a locally served model.")
     p.add_argument("prompt", nargs="*", help="one-shot prompt; omit for an interactive session")
     p.add_argument("-p", "--print", dest="print_mode", action="store_true", help="non-interactive: answer and exit")
     p.add_argument("-y", "--yes", action="store_true", help="auto-approve every tool call")
@@ -57,7 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--web", action="store_true", help="serve the chat page, which shares sessions with the terminal")
     p.add_argument("--host", help="with --web: address to listen on (default 127.0.0.1; 0.0.0.0 for the LAN)")
     p.add_argument("--port", type=int, help="with --web: port (default 8089)")
-    p.add_argument("--version", action="version", version=f"fable {__version__}")
+    p.add_argument("--version", action="version", version=f"frank {__version__}")
     return p
 
 
@@ -100,7 +100,7 @@ def main(argv: list[str] | None = None) -> int:
     info = client.probe()
     if info.get("error"):
         console.print(f"[bold red]cannot reach {settings.base_url}: {escape(info['error'])}[/bold red]")
-        console.print("[dim]is the model server running? check FABLE_BASE_URL or --base-url; the control page shows what is being served[/dim]")
+        console.print("[dim]is the model server running? check FRANK_BASE_URL or --base-url; the control page shows what is being served[/dim]")
         return 2
     if not client.model:
         console.print("[bold red]the server lists no models[/bold red]")
@@ -173,7 +173,7 @@ def repl(agent: Agent, ui: UI, settings: Settings, info: dict) -> int:
     ps: PromptSession = PromptSession(history=FileHistory(str(settings.home / "history")))
     mode = {"ask": "ask before changes", "auto": "auto-approve", "readonly": "read-only"}[settings.permission_mode]
     ui.console.print(
-        f"👽 [bold]fable[/bold] {__version__} · {agent.client.model} @ {agent.client.base_url} · "
+        f"👽 [bold]frank[/bold] {__version__} · {agent.client.model} @ {agent.client.base_url} · "
         f"ctx {fmt_tokens(agent.context_window)} · thinking {thinking_label(settings, agent.client.model)} · {mode} · session {agent.session.id if agent.session else '-'}"
     )
     ui.console.print("[dim]/help for commands, Ctrl-C interrupts a turn, Ctrl-D exits[/dim]")

@@ -1,4 +1,4 @@
-from fable_local import prompts
+from frank_local import prompts
 
 
 def test_local_prompt_file_replaces_the_default(tmp_path, monkeypatch):
@@ -13,7 +13,7 @@ def test_local_prompt_file_replaces_the_default(tmp_path, monkeypatch):
 
 
 def test_instruction_files_include_claude_codes_places(tmp_path, monkeypatch):
-    from fable_local.prompt import instruction_files
+    from frank_local.prompt import instruction_files
 
     home = tmp_path / "home"
     proj = home / "work" / "proj"

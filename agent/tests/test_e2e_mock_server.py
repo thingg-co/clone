@@ -8,9 +8,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from fable_local.client import Client
-from fable_local.config import Settings
-from fable_local.loop import Agent
+from frank_local.client import Client
+from frank_local.config import Settings
+from frank_local.loop import Agent
 
 
 def sse(obj):

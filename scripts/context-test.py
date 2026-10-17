@@ -56,9 +56,9 @@ def main() -> int:
     ap.add_argument("--record", metavar="FILE", help="append each result to FILE as a JSON line (the control page reads run/recall.jsonl)")
     ap.add_argument("--label", help="name to record the results under, normally the profile key (default: the model id)")
     ap.add_argument("--max-tokens", type=int, default=32768,
-                    help="room for each answer, thinking included: what fable allows, less where the window is nearly full")
+                    help="room for each answer, thinking included: what frank allows, less where the window is nearly full")
     ap.add_argument("--samples", type=int, default=0,
-                    help="after each answer at temperature 0, this many more at the server's own sampling, as fable asks "
+                    help="after each answer at temperature 0, this many more at the server's own sampling, as frank asks "
                          "(the prompt is cached by then, so each costs only its answer)")
     args = ap.parse_args()
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {args.api_key}"}
@@ -140,7 +140,7 @@ def main() -> int:
                 text, thought = msg.get("content") or "", msg.get("reasoning_content") or msg.get("reasoning") or ""
                 print(f"            wanted codes in the answer {[w for w in want if str(w) in text]}, in the reasoning "
                       f"{[w for w in want if str(w) in thought]}; the answer ends {text[-600:]!r}", flush=True)
-        # The same prompt again at the server's own sampling, which is how fable asks. By now the
+        # The same prompt again at the server's own sampling, which is how frank asks. By now the
         # prompt is cached, so each one costs only its answer.
         samples = []
         for k in range(args.samples):

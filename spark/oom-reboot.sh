@@ -12,17 +12,17 @@
 #     reboots after 10 seconds (kernel.panic);
 #   - a task stuck in the kernel for two minutes panics too (kernel.hung_task_panic); the
 #     GPU driver's tasks were stuck like that in one of the hangs;
-#   - clone-memwatch (spark/memwatch.sh) reboots after about a minute of the whole machine
+#   - frank-memwatch (spark/memwatch.sh) reboots after about a minute of the whole machine
 #     waiting on memory, the hang the first two did not catch;
 #   - systemd runs the board's hardware watchdog, which resets the machine if even PID 1
 #     stops for a minute.
 # Model servers do not start at boot, so the machine comes back clean.
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-SYSCTL=/etc/sysctl.d/90-clone-oom-reboot.conf
-WATCH=/usr/local/sbin/clone-memwatch
-UNIT=/etc/systemd/system/clone-memwatch.service
-WDOG=/etc/systemd/system.conf.d/90-clone-watchdog.conf
+SYSCTL=/etc/sysctl.d/90-frank-oom-reboot.conf
+WATCH=/usr/local/sbin/frank-memwatch
+UNIT=/etc/systemd/system/frank-memwatch.service
+WDOG=/etc/systemd/system.conf.d/90-frank-watchdog.conf
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 need_root() { [ "$(id -u)" = 0 ] || die "run it with sudo"; }
@@ -30,9 +30,9 @@ need_root() { [ "$(id -u)" = 0 ] || die "run it with sudo"; }
 case "${1:-status}" in
     install)
         need_root
-        [ -r /proc/pressure/memory ] || die "this kernel has no /proc/pressure/memory, which clone-memwatch reads"
+        [ -r /proc/pressure/memory ] || die "this kernel has no /proc/pressure/memory, which frank-memwatch reads"
         cat > "$SYSCTL" <<'EOF'
-# Reboot instead of hanging when memory runs out (clone, spark/oom-reboot.sh).
+# Reboot instead of hanging when memory runs out (frank, spark/oom-reboot.sh).
 vm.panic_on_oom = 1
 kernel.panic = 10
 kernel.hung_task_panic = 1
@@ -42,7 +42,7 @@ EOF
         install -m 0755 -o root -g root "$ROOT/spark/memwatch.sh" "$WATCH"
         cat > "$UNIT" <<EOF
 [Unit]
-Description=Reboot when the machine is stalled on memory (clone)
+Description=Reboot when the machine is stalled on memory (frank)
 
 [Service]
 ExecStart=$WATCH
@@ -57,18 +57,18 @@ WantedBy=multi-user.target
 EOF
         mkdir -p "$(dirname "$WDOG")"
         cat > "$WDOG" <<'EOF'
-# The board's watchdog resets the machine if systemd stops answering for a minute (clone).
+# The board's watchdog resets the machine if systemd stops answering for a minute (frank).
 [Manager]
 RuntimeWatchdogSec=60s
 EOF
         systemctl daemon-reload
         systemctl daemon-reexec   # systemd reads RuntimeWatchdogSec only when it starts
-        systemctl enable --now clone-memwatch.service
+        systemctl enable --now frank-memwatch.service
         "$0" status
         ;;
     uninstall)
         need_root
-        systemctl disable --now clone-memwatch.service 2>/dev/null || true
+        systemctl disable --now frank-memwatch.service 2>/dev/null || true
         rm -f "$SYSCTL" "$WATCH" "$UNIT" "$WDOG"
         sysctl -q -w vm.panic_on_oom=0 kernel.panic=0 kernel.hung_task_panic=0
         sysctl -q --system
@@ -80,7 +80,7 @@ EOF
         for k in vm.panic_on_oom kernel.panic kernel.hung_task_panic kernel.hung_task_timeout_secs; do
             printf '%-30s %s\n' "$k" "$(sysctl -n "$k")"
         done
-        printf '%-30s %s\n' clone-memwatch "$(systemctl is-active clone-memwatch.service 2>/dev/null || true)"
+        printf '%-30s %s\n' frank-memwatch "$(systemctl is-active frank-memwatch.service 2>/dev/null || true)"
         printf '%-30s %s\n' "hardware watchdog" "$(systemctl show -p RuntimeWatchdogUSec --value)"
         printf '%-30s %s\n' "memory pressure now" "$(grep '^full' /proc/pressure/memory 2>/dev/null || echo unknown)"
         ;;

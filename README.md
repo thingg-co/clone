@@ -1,7 +1,7 @@
-# 👽 clone
+# 👽 frank
 
 A local coding agent on the DGX Spark. Two parts: a model server on the Spark
-with as much context as the box can hold, and `fable`, a terminal agent with
+with as much context as the box can hold, and `frank`, a terminal agent with
 tool calling that works the way Claude Code does. The target is three things
 at once: a context window of 500k tokens or more, deep thinking before the
 model acts, and reliable tool calls. Everything stays inside this
@@ -40,7 +40,7 @@ asks for three of the codes, one near the start, one in the middle and one
 near the end, and wants them back through a tool call. A size passes when the
 call is made and all three codes are right. Thousands of nearly identical
 lines make it a harsh test. It is also the property a long window is for.
-Each answer gets 32,768 tokens, thinking included, which is what fable
+Each answer gets 32,768 tokens, thinking included, which is what frank
 allows. Until 14 October it was 4,000, which cut DeepSeek off mid-thought
 once; the models measured before then are queued again at the new budget.
 
@@ -348,8 +348,8 @@ Five ways to serve, one port:
     scripts/bench.py           speed, thinking, tool loop and the recall test, one JSON line per model
     scripts/results.py         rank the results; --publish writes docs/results.json and the tables
     scripts/clef-test.py       the recall test for a decision model: multiple choice and claims to check
-    bin/clone                  fable in the current directory, pointed at the server; tmux over SSH
-    agent/                     fable, the agent (see agent/README.md)
+    bin/frank                  frank in the current directory, pointed at the server; tmux over SSH
+    agent/                     frank, the agent (see agent/README.md)
     docs/                      the project page, served by GitHub Pages
     claude-code/               run Claude Code against the Spark
     Makefile                   the above as targets; make help
@@ -361,7 +361,7 @@ On the Mac:
 
     make config                       # writes config/spark.env with a fresh API key
     $EDITOR config/spark.env          # SPARK_HOST, SPARK_USER, BACKEND, VLLM_PROFILE or MODEL
-    make deploy                       # rsync to ~/Development/clone on the Spark (or copy the tree however you like)
+    make deploy                       # rsync to ~/Development/frank on the Spark (or copy the tree however you like)
 
 On the Spark, in the tree:
 
@@ -397,43 +397,43 @@ The agent runs anywhere with network access to the Spark, and does not need
 this checkout there. The control page prints the command, which looks like
 this:
 
-    FABLE_BASE_URL=http://omega.local:8080/v1 \
-    FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.33.tar.gz" fable
+    FRANK_BASE_URL=http://omega.local:8080/v1 \
+    FRANK_API_KEY=... \
+    uvx --from "frank-local @ http://omega.local:8088/dist/<hash>/frank_local-0.3.0.tar.gz" frank
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
-`agent/.venv/bin/fable`.
+`agent/.venv/bin/frank`.
 
-## The clone command
+## The frank command
 
-`bin/clone` starts fable in the current directory, already pointed at the
+`bin/frank` starts frank in the current directory, already pointed at the
 model server. `spark/bootstrap.sh` links it into `~/.local/bin` on the Spark,
-and `make clone-command` does the same on a Mac, where it talks to the Spark
+and `make frank-command` does the same on a Mac, where it talks to the Spark
 over the network:
 
     ssh omega.local
     cd ~/Development/steel
-    clone                             # or clone -c to resume the last session here
+    frank                             # or frank -c to resume the last session here
 
 Run in your home folder, it lists `~/Development`, most recently changed
 first, and starts in the one you pick. Paste a git URL at that prompt, or run
-`clone <git url>` anywhere, and it clones the repository into `~/Development`
+`frank <git url>` anywhere, and it clones the repository into `~/Development`
 first (or opens the folder if it is already there). Over SSH it runs inside tmux, one
 session per directory, so a dropped connection or a closed laptop leaves the
-agent working; `clone` in the same folder attaches to it again, and Ctrl-b d
+agent working; `frank` in the same folder attaches to it again, and Ctrl-b d
 leaves it running on purpose. Quitting the agent leaves a shell in the
-project. Any fable option passes through (`clone --effort max`, `clone
---doctor`). `CLONE_TMUX=0` turns tmux off.
+project. Any frank option passes through (`frank --effort max`, `frank
+--doctor`). `FRANK_TMUX=0` turns tmux off.
 
 On the Spark the agent works on the Spark's copy of a project, so a project
-has to be cloned or synced there first. To make plain `ssh fable` land in
+has to be cloned or synced there first. To make plain `ssh frank` land in
 the list, add this to `~/.ssh/config` on the Mac:
 
-    Host fable
+    Host frank
         HostName omega.local
         RequestTTY yes
         ForwardAgent yes
-        RemoteCommand bash -lc clone
+        RemoteCommand bash -lc frank
 
 ForwardAgent lets git inside the session push with the Mac's keys; the
 session keeps a stable link to whichever connection is current.
@@ -441,7 +441,7 @@ session keeps a stable link to whichever connection is current.
 ## Control page
 
 `spark/panel.py` is a small page served from the Spark, standard library only,
-installed as the user unit `clone-panel` by the bootstrap. It is on the LAN at
+installed as the user unit `frank-panel` by the bootstrap. It is on the LAN at
 http://omega.local:8088 (`make panel` opens it). There is no login.
 
 It shows what is being served, the context window and memory, and has buttons
@@ -452,13 +452,13 @@ are on disk; pick one, pick a window and it rewrites `config/spark.env` on the
 Spark, reinstalls the unit and restarts. Weights can be pulled from the same
 table. The Reliability table ranks every model measured so far by how far it
 stays exact, with the codes it got right at each prompt size and its decode and
-read-in speed, and says which model a running bake-off is on. The Connect box prints the full command for Claude Code and for fable
+read-in speed, and says which model a running bake-off is on. The Connect box prints the full command for Claude Code and for frank
 against whichever host name you choose, with copy buttons, and two tests: one
 request to `/v1/messages`, which is what Claude Code needs, and the
 tool-calling check. The host list has every name the Spark answers to
 (`omega.local` on the LAN, the bare name for Tailscale or a DNS entry of your
 own, its addresses) and a box for any other. Both commands work on any
-machine that can reach the Spark: the page hands fable out as an installable
+machine that can reach the Spark: the page hands frank out as an installable
 archive, so its command is two variables and one `uvx` line. Output of whatever ran last is at the bottom, next to the
 service logs. The page updates itself over server-sent events.
 
@@ -472,15 +472,15 @@ Spark has none. `make vllm-switch` changes both.
 
 ## Chat page
 
-The `clone-chat` unit runs `clone --web`, which is fable in the browser at
+The `frank-chat` unit runs `frank --web`, which is frank in the browser at
 http://omega.local:8089 (`make chat` opens it). It looks like ChatGPT or Claude
-on the web, with the chats down the side, and each chat is a fable session in a
+on the web, with the chats down the side, and each chat is a frank session in a
 project folder on the Spark, with the same tools, thinking levels and permission
 prompts as the terminal. A new chat asks which folder; the list is the folders
 used lately and then the rest of `~/Development`.
 
-The page and the `clone` command share the session files in `agent/.fable/`.
-Terminal sessions show up on the page, `clone -c` in a project folder resumes
+The page and the `frank` command share the session files in `agent/.frank/`.
+Terminal sessions show up on the page, `frank -c` in a project folder resumes
 the chat last used there whichever side it was on, and Up in the message box
 brings back what was typed in either. One side at a time can run a turn in a
 session. The other says the session is busy until the turn is done, then picks
@@ -496,7 +496,7 @@ Like the control page it starts at boot, needs no model to be running, and
 listens where `PANEL_HOST` says, so it is on the LAN with the shipped config.
 There is no login. Anyone who can reach port 8089 can have the agent run
 commands on the Spark as you. `PANEL_HOST=127.0.0.1` keeps both pages to the
-SSH tunnel, which forwards 8089 as well. Elsewhere, `fable --web` serves the
+SSH tunnel, which forwards 8089 as well. Elsewhere, `frank --web` serves the
 same page for the sessions on that machine, on 127.0.0.1 unless `--host` says
 otherwise.
 
@@ -567,7 +567,7 @@ it. A cable to the router would make all of this unnecessary.
 
 ## The agent
 
-`fable` is a Python package in `agent/`. It streams from any OpenAI-compatible
+`frank` is a Python package in `agent/`. It streams from any OpenAI-compatible
 endpoint and gives the model: `bash` with a persistent working directory,
 `read_file`, `write_file`, `edit_file` (exact-match replace with a diff),
 `glob_files`, `grep_files`, `list_dir`, `web_fetch`, `todo_write` and
@@ -585,7 +585,7 @@ system prompt asks for a `<think>` block before every answer and tool call,
 and the levels change how much work that block has to do. Details in
 `agent/README.md`.
 
-The prompts are in `agent/fable_local/prompts/` as Markdown: the system
+The prompts are in `agent/frank_local/prompts/` as Markdown: the system
 prompt (identity, how the session works, delivering work, working with code,
 writing as the user, writing for the user, planning), the user's standing
 instructions, the thinking protocol, the subagent brief, the compaction

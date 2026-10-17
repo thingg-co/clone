@@ -1,6 +1,6 @@
 # systemd user unit for the control page (spark/panel.py).
 [Unit]
-Description=clone control panel
+Description=frank control panel
 After=network-online.target
 
 [Service]

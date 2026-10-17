@@ -1,9 +1,9 @@
 import json
 from pathlib import Path
 
-from fable_local.client import ToolCall, Turn
-from fable_local.config import Settings
-from fable_local.loop import COMPACT_NOTE, Agent
+from frank_local.client import ToolCall, Turn
+from frank_local.config import Settings
+from frank_local.loop import COMPACT_NOTE, Agent
 
 
 class FakeClient:

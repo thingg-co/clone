@@ -1,5 +1,5 @@
-# Agent settings. Copy to agent/config.toml, or to .fable.toml in a project,
-# or to ~/.config/fable/config.toml. Environment variables FABLE_<KEY> override
+# Agent settings. Copy to agent/config.toml, or to .frank.toml in a project,
+# or to ~/.config/frank/config.toml. Environment variables FRANK_<KEY> override
 # these, and command-line flags override everything.
 
 base_url = "http://localhost:8080/v1"   # through the tunnel; or http://omega.local:8080/v1 on the LAN
@@ -28,7 +28,7 @@ max_subagent_depth = 1
 # subagent_model = "gpt-oss-20b"
 # subagent_api_key = "change-me"
 
-name = "Fable"
+name = "Frank"
 system_prompt_extra = ""                # appended to the system prompt
 # temperature = 0.6                     # unset: the server uses the model's own generation_config
 # extra_body = { top_p = 0.95 }         # merged into every request

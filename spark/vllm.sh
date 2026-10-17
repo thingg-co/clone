@@ -139,8 +139,8 @@ if text.count(old) != 1:
 open(sys.argv[2], "w", encoding="utf-8").write(text.replace(old, new))
 PY
             then
-                mounts+=(-v "$alias_tpl:/clone/chat_template.jinja:ro")
-                args+=(--chat-template /clone/chat_template.jinja)
+                mounts+=(-v "$alias_tpl:/frank/chat_template.jinja:ro")
+                args+=(--chat-template /frank/chat_template.jinja)
             else
                 warn "EFFORT_ALIAS: the template's effort line is not the expected one; serving it unchanged (reasoning_effort high will be refused)"
             fi
@@ -191,7 +191,7 @@ PY
         mkdir -p "$HOME/.config/systemd/user"
         cat > "$HOME/.config/systemd/user/vllm.service" <<UNIT
 [Unit]
-Description=vLLM main (clone)
+Description=vLLM main (frank)
 After=network-online.target docker.service
 
 [Service]

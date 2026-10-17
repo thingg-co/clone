@@ -1,12 +1,12 @@
 # Day-to-day targets. Remote targets need config/spark.env (make config).
 -include config/spark.env
 SPARK := $(SPARK_USER)@$(SPARK_HOST)
-REMOTE := $(or $(REMOTE_DIR),Development/clone)
+REMOTE := $(or $(REMOTE_DIR),Development/frank)
 BACKEND ?= vllm
 MODEL ?= gpt-oss-120b
 ARGS ?=
 
-.PHONY: help config deploy bootstrap ssh status start stop restart logs switch vllm-switch pull bench tunnel panel chat smoke agent-install agent clone-command doctor test
+.PHONY: help config deploy bootstrap ssh status start stop restart logs switch vllm-switch pull bench tunnel panel chat smoke agent-install agent frank-command doctor test
 
 help: ## this list
 	@grep -hE '^[a-z -]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -55,7 +55,7 @@ tunnel: ## forward the model ports to localhost (leave running)
 panel: ## open the control page on the Spark
 	open http://$(strip $(SPARK_HOST)):$(or $(strip $(PANEL_PORT)),8088)
 
-chat: ## open the chat page on the Spark (fable in the browser, same sessions as clone)
+chat: ## open the chat page on the Spark (frank in the browser, same sessions as frank)
 	open http://$(strip $(SPARK_HOST)):8089
 
 smoke: ## tool-calling smoke test through the tunnel
@@ -64,15 +64,15 @@ smoke: ## tool-calling smoke test through the tunnel
 agent-install: ## create the agent's venv
 	cd agent && uv sync
 
-agent: ## run the agent (through the tunnel, or set FABLE_BASE_URL)
-	cd agent && uv run fable
+agent: ## run the agent (through the tunnel, or set FRANK_BASE_URL)
+	cd agent && uv run frank
 
-clone-command: ## link bin/clone into ~/.local/bin: then `clone` in any directory starts the agent there
-	mkdir -p $(HOME)/.local/bin && ln -sfn $(CURDIR)/bin/clone $(HOME)/.local/bin/clone
-	@echo "clone is in ~/.local/bin; cd into a project and run clone"
+frank-command: ## link bin/frank into ~/.local/bin: then `frank` in any directory starts the agent there
+	mkdir -p $(HOME)/.local/bin && ln -sfn $(CURDIR)/bin/frank $(HOME)/.local/bin/frank
+	@echo "frank is in ~/.local/bin; cd into a project and run frank"
 
 doctor: ## check the server from the agent's point of view
-	cd agent && uv run fable --doctor
+	cd agent && uv run frank --doctor
 
 test: ## agent unit tests
 	cd agent && uv run pytest -q

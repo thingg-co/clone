@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# clone-wifiwatch: connect the Wi-Fi again when NetworkManager has given up on it.
+# frank-wifiwatch: connect the Wi-Fi again when NetworkManager has given up on it.
 # spark/headless.sh installs it as a root service that a timer runs every minute; it is not
 # meant to be run from here.
 #
@@ -14,7 +14,7 @@
 # in a row, this connects it again. NetworkManager then uses the saved password, which is
 # all that logging in did. A radio switched off (nmcli radio wifi off) is left alone.
 set -u
-MARK=${MARK:-/run/clone-wifiwatch}   # not empty when the last check found the Wi-Fi down
+MARK=${MARK:-/run/frank-wifiwatch}   # not empty when the last check found the Wi-Fi down
 
 dev=$(nmcli -t -f DEVICE,TYPE device 2>/dev/null | awk -F: '$2 == "wifi" { print $1; exit }')
 [ -n "$dev" ] || exit 0
@@ -28,5 +28,5 @@ if [ ! -s "$MARK" ]; then
     exit 0
 fi
 : > "$MARK"
-echo "clone-wifiwatch: $dev is $state on two checks in a row; connecting it again"
+echo "frank-wifiwatch: $dev is $state on two checks in a row; connecting it again"
 nmcli --wait 60 device connect "$dev"

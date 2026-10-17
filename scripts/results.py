@@ -3,7 +3,7 @@
 the results tables in docs/index.html and README.md from it. Standard library only.
 
     python3 scripts/results.py                         # print the ranking
-    scp omega.local:clone/run/results.jsonl run/       # fetch the Spark's runs first
+    scp omega.local:frank/run/results.jsonl run/       # fetch the Spark's runs first
     python3 scripts/results.py --publish               # write docs/results.json and the table
 
 The ranking is the control page's (spark/panel.py results()): the largest prompt answered

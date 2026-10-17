@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# clone-memwatch: reboot the machine once it has been stalled on memory for about a minute.
+# frank-memwatch: reboot the machine once it has been stalled on memory for about a minute.
 # spark/oom-reboot.sh installs it as a root service; it is not meant to be run from here.
 #
 # /proc/pressure/memory's "full avg60" is the share of the last minute in which every
@@ -10,16 +10,16 @@
 #
 # Nothing forks once the loop runs, since a fork can itself wait for memory then.
 LIMIT=${LIMIT:-40}
-[ -r /proc/pressure/memory ] || { echo "clone-memwatch: no /proc/pressure/memory in this kernel" >&2; exit 1; }
+[ -r /proc/pressure/memory ] || { echo "frank-memwatch: no /proc/pressure/memory in this kernel" >&2; exit 1; }
 exec {nap}<> <(:)   # a pipe nobody writes to: read -t on it sleeps without a fork
-echo "clone-memwatch: rebooting if memory full avg60 reaches ${LIMIT}%" > /dev/kmsg
+echo "frank-memwatch: rebooting if memory full avg60 reaches ${LIMIT}%" > /dev/kmsg
 while :; do
     read -r -t 10 -u "$nap" _ || true
     while read -r kind _ avg60 _; do
         [ "$kind" = full ] || continue
         pct=${avg60#avg60=}
         if [ "${pct%%.*}" -ge "$LIMIT" ]; then
-            echo "clone-memwatch: memory full avg60 ${pct}%, rebooting" > /dev/kmsg
+            echo "frank-memwatch: memory full avg60 ${pct}%, rebooting" > /dev/kmsg
             echo s > /proc/sysrq-trigger   # write out what can be written
             read -r -t 5 -u "$nap" _ || true
             echo u > /proc/sysrq-trigger   # remount read-only

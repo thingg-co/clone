@@ -6,7 +6,7 @@
 #   spark/bootstrap.sh --no-pull      # skip downloads (resume them later with pull-model.sh / vllm.sh pull)
 #   spark/bootstrap.sh --no-build     # skip the llama.cpp build
 #   spark/bootstrap.sh --no-start     # install services but do not start them
-#   spark/bootstrap.sh --agent        # also create the agent's venv here (to run fable on the Spark itself)
+#   spark/bootstrap.sh --agent        # also create the agent's venv here (to run frank on the Spark itself)
 set -euo pipefail
 . "$(dirname "$0")/common.sh"
 
@@ -61,16 +61,16 @@ fi
 "$ROOT/spark/service.sh" install
 if [ "$BACKEND" = vllm ]; then VLLM_PROFILE="${VLLM_PROFILE:-qwen3.8-27b}" "$ROOT/spark/vllm.sh" install; fi
 
-systemctl --user restart clone-panel.service && log "control page on http://$(hostname).local:${PANEL_PORT:-8088} (make panel on the Mac)"
-systemctl --user restart clone-chat.service && log "chat page on http://$(hostname).local:8089 (make chat on the Mac)"
+systemctl --user restart frank-panel.service && log "control page on http://$(hostname).local:${PANEL_PORT:-8088} (make panel on the Mac)"
+systemctl --user restart frank-chat.service && log "chat page on http://$(hostname).local:8089 (make chat on the Mac)"
 
-# 6. the clone command: fable in whatever directory you are in, pointed at this server
+# 6. the frank command: frank in whatever directory you are in, pointed at this server
 mkdir -p "$HOME/.local/bin"
-ln -sfn "$ROOT/bin/clone" "$HOME/.local/bin/clone" && log "clone command linked into ~/.local/bin: cd into a project and run clone"
+ln -sfn "$ROOT/bin/frank" "$HOME/.local/bin/frank" && log "frank command linked into ~/.local/bin: cd into a project and run frank"
 
-# 7. agent venv on the Spark (optional; clone creates it on first use too)
+# 7. agent venv on the Spark (optional; frank creates it on first use too)
 if [ "$do_agent" = 1 ]; then
-    (cd "$ROOT/agent" && uv sync --quiet) && log "agent ready: $ROOT/agent/.venv/bin/fable"
+    (cd "$ROOT/agent" && uv sync --quiet) && log "agent ready: $ROOT/agent/.venv/bin/frank"
 fi
 
 # 7. start and check
@@ -85,4 +85,4 @@ if [ "$do_start" = 1 ]; then
         warn "not healthy after 30 min. Logs: spark/service.sh logs   or   spark/vllm.sh logs"
     fi
 fi
-log "done. Agent from the Mac: make tunnel, then cd agent && uv run fable"
+log "done. Agent from the Mac: make tunnel, then cd agent && uv run frank"
