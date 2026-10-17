@@ -361,7 +361,7 @@ On the Mac:
 
     make config                       # writes config/spark.env with a fresh API key
     $EDITOR config/spark.env          # SPARK_HOST, SPARK_USER, BACKEND, VLLM_PROFILE or MODEL
-    make deploy                       # rsync to ~/clone on the Spark (or copy the tree however you like)
+    make deploy                       # rsync to ~/Development/clone on the Spark (or copy the tree however you like)
 
 On the Spark, in the tree:
 
@@ -399,7 +399,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.32.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.33.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.

@@ -1,7 +1,7 @@
 # Day-to-day targets. Remote targets need config/spark.env (make config).
 -include config/spark.env
 SPARK := $(SPARK_USER)@$(SPARK_HOST)
-REMOTE := $(or $(REMOTE_DIR),clone)
+REMOTE := $(or $(REMOTE_DIR),Development/clone)
 BACKEND ?= vllm
 MODEL ?= gpt-oss-120b
 ARGS ?=

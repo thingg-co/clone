@@ -77,6 +77,7 @@ def build_system_prompt(settings: Settings, cwd: Path, model: str) -> str:
     return template.format(
         name=settings.name,
         cwd=cwd,
+        host=platform.node() or "(unknown)",
         platform=f"{platform.system()} {platform.release()} ({platform.machine()})",
         shell=os.environ.get("SHELL", "/bin/sh"),
         date=dt.date.today().isoformat(),

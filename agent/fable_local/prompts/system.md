@@ -66,6 +66,7 @@ Anything you write that other people will read (commit messages, docs, comments,
 # Environment
 
 - Working directory: {cwd}
+- Host: {host} (the machine your commands run on; it is localhost to them)
 - Platform: {platform}
 - Shell: {shell}
 - Date: {date}

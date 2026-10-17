@@ -1,3 +1,9 @@
+import signal
+import subprocess
+import time
+
+import pytest
+
 from fable_local.tools.base import truncate_middle
 from fable_local.tools.fs import EditFile, GlobFiles, GrepFiles, ListDir, ReadFile, WriteFile
 from fable_local.tools.shell import Bash
@@ -49,6 +55,44 @@ def test_bash_cwd_persists_and_exit_code(ctx, tmp_path):
 def test_bash_timeout(ctx):
     r = Bash().run({"command": "sleep 5", "timeout": 1}, ctx)
     assert r.is_error and "timed out" in r.content
+
+
+def _running(pid: int, wait: float = 3.0) -> bool:
+    """Whether pid is still alive (a zombie counts as gone) after up to `wait` seconds."""
+    end = time.monotonic() + wait
+    while True:
+        state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+        if not state or state.startswith("Z"):
+            return False
+        if time.monotonic() > end:
+            return True
+        time.sleep(0.05)
+
+
+# A job sent to the background ignores SIGINT and keeps the output pipe open, so stopping
+# only bash, as subprocess.run does, leaves it running.
+LEAVES_A_CHILD = "sleep 30 & echo $! > child.pid; sleep 30"
+
+
+def test_bash_timeout_ends_what_the_command_started(ctx, tmp_path):
+    r = Bash().run({"command": LEAVES_A_CHILD, "timeout": 1}, ctx)
+    assert r.is_error and "timed out" in r.content
+    assert not _running(int((tmp_path / "child.pid").read_text()))
+
+
+def test_bash_interrupt_ends_what_the_command_started(ctx, tmp_path):
+    def interrupt(signum, frame):
+        raise KeyboardInterrupt
+
+    old = signal.signal(signal.SIGALRM, interrupt)
+    signal.setitimer(signal.ITIMER_REAL, 0.5)
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            Bash().run({"command": LEAVES_A_CHILD, "timeout": 60}, ctx)
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, old)
+    assert not _running(int((tmp_path / "child.pid").read_text()))
 
 
 def test_glob_grep_list(ctx, tmp_path):

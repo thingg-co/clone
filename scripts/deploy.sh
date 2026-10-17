@@ -7,7 +7,7 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 [ -f "$ROOT/config/spark.env" ] || { echo "copy config/spark.env.example to config/spark.env first" >&2; exit 1; }
 set -a; . "$ROOT/config/spark.env"; set +a
 target="${SPARK_USER}@${SPARK_HOST}"
-remote="${REMOTE_DIR:-clone}"
+remote="${REMOTE_DIR:-Development/clone}"
 run_bootstrap=0; flags=()
 for a in "$@"; do case "$a" in --bootstrap) run_bootstrap=1 ;; *) flags+=("$a") ;; esac; done
 

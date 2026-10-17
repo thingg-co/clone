@@ -27,8 +27,17 @@ log "llama.cpp at $(git -C "$LLAMA_DIR" describe --tags --always)"
 gen=()
 if command -v ninja >/dev/null; then gen=(-G Ninja); fi
 
+# cmake refuses a build directory that was configured somewhere else, as after the tree moved.
+cache="$LLAMA_DIR/build/CMakeCache.txt"
+if [ -f "$cache" ] && ! grep -qxF "CMAKE_CACHEFILE_DIR:INTERNAL=$LLAMA_DIR/build" "$cache"; then
+    warn "llama.cpp/build was configured in another directory; configuring it again"
+    rm -rf "$cache" "$LLAMA_DIR/build/CMakeFiles"
+fi
+
+# BUILD_RPATH_USE_ORIGIN: the binaries find their libraries next to themselves, so the tree can move.
 cmake -S "$LLAMA_DIR" -B "$LLAMA_DIR/build" "${gen[@]}" \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_BUILD_RPATH_USE_ORIGIN=ON \
     -DGGML_CUDA=ON \
     -DCMAKE_CUDA_ARCHITECTURES="$CUDA_ARCHS" \
     -DGGML_NATIVE=ON \
