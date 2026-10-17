@@ -333,6 +333,8 @@ Five ways to serve, one port:
     spark/service.sh           systemd user units for the llama.cpp instances
     spark/oom-reboot.sh        (sudo) reboot instead of hanging when memory runs out
     spark/memwatch.sh          the memory-stall watch that oom-reboot.sh installs
+    spark/headless.sh          (sudo) bring the Wi-Fi back when it waits for a password nobody types
+    spark/wifiwatch.sh         the Wi-Fi check that headless.sh installs
     spark/panel.py             control page: status, profile and context switch, connection strings
     spark/preflight.sh         memory, GPU processes, ports, does the profile fit
     spark/bake.sh              measure a list of profiles in turn: download, serve, scripts/bench.py
@@ -397,7 +399,7 @@ this:
 
     FABLE_BASE_URL=http://omega.local:8080/v1 \
     FABLE_API_KEY=... \
-    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.31.tar.gz" fable
+    uvx --from "fable-local @ http://omega.local:8088/dist/<hash>/fable_local-0.2.32.tar.gz" fable
 
 To run it on the Spark itself: `spark/bootstrap.sh --agent`, then
 `agent/.venv/bin/fable`.
@@ -551,6 +553,17 @@ a minute of the whole machine waiting on memory each lead to a reboot, and the
 hardware watchdog resets the board if systemd itself stops. Since model
 servers don't start at boot, it comes back with nothing loaded.
 `spark/oom-reboot.sh status` shows the settings.
+
+Coming back is not the same as being reachable. The Spark is on Wi-Fi, and when
+a Wi-Fi handshake fails NetworkManager takes the saved password for wrong and
+asks for a new one. After the restart on 2026-10-16 the first handshakes timed
+out, the login screen's password box took the request, and the Spark stayed
+off the network for 16 hours until someone logged in. `sudo spark/headless.sh
+install` adds a root timer that checks the Wi-Fi every minute. When it has
+been waiting for a password, failed or disconnected on two checks in a row, it
+connects it again, and NetworkManager uses the saved password. A radio turned
+off with `nmcli radio wifi off` is left alone. `spark/headless.sh status` shows
+it. A cable to the router would make all of this unnecessary.
 
 ## The agent
 
